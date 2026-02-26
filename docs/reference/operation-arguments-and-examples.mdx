@@ -1,0 +1,1353 @@
+---
+title: "Operation arguments and examples"
+description: "Detailed argument contract and copy/paste examples for every supported operation."
+---
+
+Use this page as the source of truth when generating `ops` payloads. Canonical names and handlers are defined in `photoshop-uxp-bridge/index.js`.
+
+## Shared conventions
+
+- `target` can be omitted for layer-targeted ops if an active layer is selected; otherwise pass one of: layer name (`"Hero"`), layer id (`"123"`), or object (`{ "layerName": "Hero" }` / `{ "layerId": "123" }`).
+- `docRef`/`target` for document ops defaults to the active document when omitted.
+- Ref assignment keys supported on any op: `ref`, `refId`, `as`, `outputRef`, `storeAs`, `idRef`.
+- Alias names listed below resolve to the same canonical op. Prefer canonical names in new prompts.
+- `format` for export/save ops accepts common image/doc formats (`png`, `jpg`, `psd`), resolved by Photoshop save/export APIs.
+- All examples are single-op snippets intended for the `ops` array.
+
+## Documents
+
+### `createDocument`
+
+- Aliases: `doc.create`, `document.create`, `newDocument`
+- Required: None
+- Supported args: `depth`, `fill`, `height`, `mode`, `name`, `preset`, `profile`, `resolution`, `width`
+
+```json
+{
+  "op": "createDocument",
+  "name": "New Doc",
+  "width": 1080,
+  "height": 1080,
+  "resolution": 72,
+  "mode": "rgbColor"
+}
+```
+
+### `openDocument`
+
+- Aliases: `doc.open`, `document.open`
+- Required: `input (or path/source)`
+- Supported args: `input`, `path`, `source`
+
+```json
+{
+  "op": "openDocument",
+  "input": "./assets/source.psd"
+}
+```
+
+### `duplicateDocument`
+
+- Aliases: `doc.duplicate`, `document.duplicate`
+- Required: None
+- Supported args: `docRef`, `mergeLayersOnly`, `name`, `target`
+
+```json
+{
+  "op": "duplicateDocument",
+  "name": "Variant A"
+}
+```
+
+### `saveDocument`
+
+- Aliases: `doc.save`, `document.save`
+- Required: None
+- Supported args: `allowDialog`, `asCopy`, `docRef`, `options`, `output`, `quality`, `target`
+
+```json
+{
+  "op": "saveDocument",
+  "output": "./tmp/current.psd"
+}
+```
+
+### `saveDocumentAs`
+
+- Aliases: `doc.saveAs`, `document.saveAs`
+- Required: `output`
+- Supported args: `docRef`, `target`, `output`, `format`, `quality`, `asCopy`, `options`
+
+```json
+{
+  "op": "saveDocumentAs",
+  "output": "./tmp/output.psd"
+}
+```
+
+### `closeDocument`
+
+- Aliases: `doc.close`, `document.close`
+- Required: None
+- Supported args: `docRef`, `mode`, `output`, `save`, `saveChanges`, `saveOption`, `target`
+
+```json
+{
+  "op": "closeDocument",
+  "save": false
+}
+```
+
+### `resizeImage`
+
+- Aliases: `document.resizeImage`
+- Required: `width` and/or `height`
+- Supported args: `docRef`, `height`, `resolution`, `target`, `width`
+
+```json
+{
+  "op": "resizeImage",
+  "width": 1920,
+  "height": 1080,
+  "resolution": 72
+}
+```
+
+### `resizeCanvas`
+
+- Aliases: `document.resizeCanvas`
+- Required: `width`, `height`
+- Supported args: `anchor`, `docRef`, `height`, `target`, `width`
+
+```json
+{
+  "op": "resizeCanvas",
+  "width": 1200,
+  "height": 1200,
+  "anchor": "middleCenter"
+}
+```
+
+### `cropDocument`
+
+- Aliases: `document.crop`
+- Required: `bounds {left, top, right, bottom}` (or top-level `left/top/right/bottom`)
+- Supported args: `angle`, `bounds`, `docRef`, `height`, `target`, `width`
+
+```json
+{
+  "op": "cropDocument",
+  "bounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1080,
+    "bottom": 1920
+  }
+}
+```
+
+### `trimDocument`
+
+- Aliases: `document.trim`
+- Required: None
+- Supported args: `bottom`, `docRef`, `left`, `right`, `target`, `top`, `trimType`
+
+```json
+{
+  "op": "trimDocument",
+  "trimType": "transparent",
+  "top": true,
+  "left": true,
+  "bottom": true,
+  "right": true
+}
+```
+
+### `rotateDocument`
+
+- Aliases: `document.rotate`
+- Required: `angle`
+- Supported args: `anchor`, `angle`, `docRef`, `options`, `target`
+
+```json
+{
+  "op": "rotateDocument",
+  "angle": 90
+}
+```
+
+### `flattenDocument`
+
+- Aliases: `flattenImage`, `document.flatten`
+- Required: None
+- Supported args: `docRef`, `target`
+
+```json
+{
+  "op": "flattenDocument"
+}
+```
+
+### `mergeVisible`
+
+- Aliases: `mergeVisibleLayers`, `document.mergeVisibleLayers`
+- Required: None
+- Supported args: `docRef`, `target`
+
+```json
+{
+  "op": "mergeVisible"
+}
+```
+
+## Layers and grouping
+
+### `createLayer`
+
+- Aliases: `layer.create`
+- Required: None
+- Supported args: `blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`
+
+```json
+{
+  "op": "createLayer",
+  "name": "Foreground"
+}
+```
+
+### `createPixelLayer`
+
+- Aliases: `layer.createPixel`
+- Required: None
+- Supported args: `blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`
+
+```json
+{
+  "op": "createPixelLayer",
+  "name": "Paint"
+}
+```
+
+### `createGroup`
+
+- Aliases: `createLayerGroup`, `layer.createGroup`
+- Required: None
+- Supported args: `blendMode`, `docRef`, `fromLayers`, `name`, `opacity`
+
+```json
+{
+  "op": "createGroup",
+  "name": "Hero Group"
+}
+```
+
+### `groupLayers`
+
+- Aliases: `layer.group`
+- Required: `targets[]`
+- Supported args: `docRef`, `name`, `targets`
+
+```json
+{
+  "op": "groupLayers",
+  "targets": [
+    {
+      "layerName": "Title"
+    },
+    {
+      "layerName": "CTA"
+    }
+  ],
+  "name": "Header Group"
+}
+```
+
+### `ungroupLayer`
+
+- Aliases: `layer.ungroup`
+- Required: None
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "ungroupLayer",
+  "target": {
+    "layerName": "Header Group"
+  }
+}
+```
+
+### `deleteLayer`
+
+- Aliases: `layer.delete`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "deleteLayer",
+  "target": {
+    "layerName": "Scratch"
+  }
+}
+```
+
+### `renameLayer`
+
+- Aliases: `layer.rename`
+- Required: `target (or active layer)`, `name (or newName)`
+- Supported args: `name`
+
+```json
+{
+  "op": "renameLayer",
+  "target": {
+    "layerName": "Layer 1"
+  },
+  "name": "Hero"
+}
+```
+
+### `duplicateLayer`
+
+- Aliases: `layer.duplicate`
+- Required: `target (or active layer)`
+- Supported args: `insertionLocation`, `name`, `placement`, `relativeTo`
+
+```json
+{
+  "op": "duplicateLayer",
+  "target": {
+    "layerName": "Hero"
+  },
+  "name": "Hero Copy"
+}
+```
+
+### `selectLayer`
+
+- Aliases: `layer.select`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "selectLayer",
+  "target": {
+    "layerName": "Hero"
+  }
+}
+```
+
+### `selectLayers`
+
+- Aliases: `layer.selectMany`
+- Required: `targets[]`
+- Supported args: `targets`
+
+```json
+{
+  "op": "selectLayers",
+  "targets": [
+    {
+      "layerName": "Hero"
+    },
+    {
+      "layerName": "CTA"
+    }
+  ],
+  "mode": "set"
+}
+```
+
+### `moveLayer`
+
+- Aliases: `layer.move`, `reorderLayer`, `layer.reorder`
+- Required: `target (or active layer)`, `one of: by{x,y}, relativeTo+placement, to(front/back), or index/at`
+- Supported args: `at`, `by`, `index`, `insertLocation`, `placement`, `relativeTo`, `to`
+
+```json
+{
+  "op": "moveLayer",
+  "target": {
+    "layerName": "CTA"
+  },
+  "relativeTo": {
+    "layerName": "Hero"
+  },
+  "placement": "placeAfter"
+}
+```
+
+### `setLayerVisibility`
+
+- Aliases: `layer.visibility`
+- Required: `target (or active layer)`, `visible`
+- Supported args: `visible`
+
+```json
+{
+  "op": "setLayerVisibility",
+  "target": {
+    "layerName": "CTA"
+  },
+  "visible": true
+}
+```
+
+### `showLayer`
+
+- Aliases: `layer.show`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "showLayer",
+  "target": {
+    "layerName": "CTA"
+  }
+}
+```
+
+### `hideLayer`
+
+- Aliases: `layer.hide`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "hideLayer",
+  "target": {
+    "layerName": "CTA"
+  }
+}
+```
+
+### `setLayerOpacity`
+
+- Aliases: `layer.opacity`
+- Required: `target (or active layer)`, `opacity`
+- Supported args: `opacity`
+
+```json
+{
+  "op": "setLayerOpacity",
+  "target": {
+    "layerName": "Hero"
+  },
+  "opacity": 80
+}
+```
+
+### `setBlendMode`
+
+- Aliases: `layer.blendMode`
+- Required: `target (or active layer)`, `blendMode`
+- Supported args: `blendMode`
+
+```json
+{
+  "op": "setBlendMode",
+  "target": {
+    "layerName": "Texture"
+  },
+  "blendMode": "multiply"
+}
+```
+
+### `setLayerProps`
+
+- Aliases: `layer.setProps`
+- Required: `target (or active layer)`
+- Supported args: `blendMode`, `locked`, `opacity`, `visible`
+
+```json
+{
+  "op": "setLayerProps",
+  "target": {
+    "layerName": "Hero"
+  },
+  "visible": true,
+  "opacity": 90,
+  "blendMode": "normal"
+}
+```
+
+### `bringLayerToFront`
+
+- Aliases: `layer.bringToFront`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "bringLayerToFront",
+  "target": {
+    "layerName": "CTA"
+  }
+}
+```
+
+### `sendLayerToBack`
+
+- Aliases: `layer.sendToBack`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "sendLayerToBack",
+  "target": {
+    "layerName": "Background"
+  }
+}
+```
+
+### `mergeLayer`
+
+- Aliases: `mergeLayers`, `layer.merge`
+- Required: `target (or active layer)`
+- Supported args: `name`, `targets`
+
+```json
+{
+  "op": "mergeLayer",
+  "target": {
+    "layerName": "Overlay"
+  }
+}
+```
+
+### `rasterizeLayer`
+
+- Aliases: `layer.rasterize`
+- Required: `target (or active layer)`
+- Supported args: `rasterizeType`, `targetType`
+
+```json
+{
+  "op": "rasterizeLayer",
+  "target": {
+    "layerName": "Smart Object"
+  }
+}
+```
+
+### `linkLayers`
+
+- Aliases: `layer.link`
+- Required: `targets[]`
+- Supported args: `targets`
+
+```json
+{
+  "op": "linkLayers",
+  "targets": [
+    {
+      "layerName": "Icon"
+    },
+    {
+      "layerName": "Label"
+    }
+  ]
+}
+```
+
+### `unlinkLayer`
+
+- Aliases: `layer.unlink`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "unlinkLayer",
+  "target": {
+    "layerName": "Icon"
+  }
+}
+```
+
+## Transforms and layout
+
+### `transformLayer`
+
+- Aliases: `layer.transform`
+- Required: `target (or active layer)`
+- Supported args: `angle`, `angleH`, `angleV`, `axis`, `by`, `flip`, `height`, `horizontal`, `percent`, `rotate`, `scale`, `scaleX`, `scaleY`, `skewX`, `skewY`, `translate`, `vertical`, `width`, `x`, `y`
+
+```json
+{
+  "op": "transformLayer",
+  "target": {
+    "layerName": "Hero"
+  },
+  "scaleX": 95,
+  "scaleY": 95,
+  "rotate": 2
+}
+```
+
+### `alignLayers`
+
+- Aliases: `layer.align`
+- Required: at least 2 layers via `targets[]` or current active selection
+- Supported args: `targets`, `axis`, `type`
+
+```json
+{
+  "op": "alignLayers",
+  "axis": "horizontalCenter",
+  "targets": [
+    {
+      "layerName": "Title"
+    },
+    {
+      "layerName": "CTA"
+    }
+  ]
+}
+```
+
+### `distributeLayers`
+
+- Aliases: `layer.distribute`
+- Required: at least 3 layers via `targets[]` or current active selection
+- Supported args: `targets`, `axis`, `type`
+
+```json
+{
+  "op": "distributeLayers",
+  "axis": "horizontal",
+  "targets": [
+    {
+      "layerName": "Card 1"
+    },
+    {
+      "layerName": "Card 2"
+    },
+    {
+      "layerName": "Card 3"
+    }
+  ]
+}
+```
+
+### `translateLayer`
+
+- Aliases: `layer.translate`
+- Required: `target (or active layer)`, `x/y or horizontal/vertical`
+- Supported args: `by`, `horizontal`, `vertical`, `x`, `y`
+
+```json
+{
+  "op": "translateLayer",
+  "target": {
+    "layerName": "Badge"
+  },
+  "x": 12,
+  "y": -8
+}
+```
+
+### `scaleLayer`
+
+- Aliases: `layer.scale`
+- Required: `target (or active layer)`, `scaleX/scaleY or width/height or scale/percent`
+- Supported args: `anchor`, `height`, `options`, `percent`, `scale`, `scaleX`, `scaleY`, `width`
+
+```json
+{
+  "op": "scaleLayer",
+  "target": {
+    "layerName": "Logo"
+  },
+  "scaleX": 120,
+  "scaleY": 120
+}
+```
+
+### `rotateLayer`
+
+- Aliases: `layer.rotate`
+- Required: `target (or active layer)`, `angle`
+- Supported args: `anchor`, `angle`, `options`
+
+```json
+{
+  "op": "rotateLayer",
+  "target": {
+    "layerName": "Badge"
+  },
+  "angle": -12
+}
+```
+
+### `flipLayer`
+
+- Aliases: `layer.flip`
+- Required: `target (or active layer)`, `axis`
+- Supported args: `axis`
+
+```json
+{
+  "op": "flipLayer",
+  "target": {
+    "layerName": "Hero"
+  },
+  "axis": "horizontal"
+}
+```
+
+### `skewLayer`
+
+- Aliases: `layer.skew`
+- Required: `target (or active layer)`, `angleH and/or angleV`
+- Supported args: `angleH`, `angleV`, `horizontal`, `options`, `vertical`
+
+```json
+{
+  "op": "skewLayer",
+  "target": {
+    "layerName": "Card"
+  },
+  "angleH": 8
+}
+```
+
+## Assets and smart objects
+
+### `placeAsset`
+
+- Aliases: `asset.place`
+- Required: `input (or path/source)`
+- Supported args: `input`, `linked`, `name`, `normalizePixels`, `path`, `source`, `transformOptions`
+
+```json
+{
+  "op": "placeAsset",
+  "input": "https://picsum.photos/seed/hero/1080/1080.jpg",
+  "name": "Hero Image"
+}
+```
+
+### `convertToSmartObject`
+
+- Aliases: `smartObject.convert`
+- Required: `target (or active layer)`
+- Supported args: `preserveName`
+
+```json
+{
+  "op": "convertToSmartObject",
+  "target": {
+    "layerName": "Hero Image"
+  }
+}
+```
+
+### `replaceSmartObject`
+
+- Aliases: `smartObject.replace`
+- Required: `target (or active layer)`, `input (or path/source)`
+- Supported args: `crop`, `input`, `pageNumber`, `path`, `preserveName`, `source`
+
+```json
+{
+  "op": "replaceSmartObject",
+  "target": {
+    "layerName": "Hero Image"
+  },
+  "input": "./assets/new-hero.jpg"
+}
+```
+
+### `relinkSmartObject`
+
+- Aliases: `smartObject.relink`
+- Required: `target (or active layer)`, `input (or path/source)`
+- Supported args: `input`, `path`, `preserveName`, `source`
+
+```json
+{
+  "op": "relinkSmartObject",
+  "target": {
+    "layerName": "Hero Image"
+  },
+  "input": "./assets/linked-hero.psb"
+}
+```
+
+### `editSmartObject`
+
+- Aliases: `smartObject.edit`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "editSmartObject",
+  "target": {
+    "layerName": "Hero Image"
+  }
+}
+```
+
+## Selection and masks
+
+### `selectAll`
+
+- Aliases: `selection.selectAll`
+- Required: None
+- Supported args: `docRef`
+
+```json
+{
+  "op": "selectAll"
+}
+```
+
+### `deselect`
+
+- Aliases: `selection.deselect`
+- Required: None
+- Supported args: `docRef`
+
+```json
+{
+  "op": "deselect"
+}
+```
+
+### `inverseSelection`
+
+- Aliases: `invertSelection`, `selection.inverse`
+- Required: None
+- Supported args: `docRef`
+
+```json
+{
+  "op": "inverseSelection"
+}
+```
+
+### `featherSelection`
+
+- Aliases: `selection.feather`
+- Required: `by or radius`
+- Supported args: `applyEffectAtCanvasBounds`, `by`, `docRef`, `radius`
+
+```json
+{
+  "op": "featherSelection",
+  "radius": 8
+}
+```
+
+### `expandSelection`
+
+- Aliases: `selection.expand`
+- Required: `by`
+- Supported args: `applyEffectAtCanvasBounds`, `by`, `docRef`
+
+```json
+{
+  "op": "expandSelection",
+  "by": 12
+}
+```
+
+### `contractSelection`
+
+- Aliases: `selection.contract`
+- Required: `by`
+- Supported args: `applyEffectAtCanvasBounds`, `by`, `docRef`
+
+```json
+{
+  "op": "contractSelection",
+  "by": 8
+}
+```
+
+### `growSelection`
+
+- Aliases: `selection.grow`
+- Required: `by or tolerance`
+- Supported args: `by`, `docRef`, `tolerance`
+
+```json
+{
+  "op": "growSelection",
+  "tolerance": 32
+}
+```
+
+### `smoothSelection`
+
+- Aliases: `selection.smooth`
+- Required: `radius`
+- Supported args: `applyEffectAtCanvasBounds`, `docRef`, `radius`
+
+```json
+{
+  "op": "smoothSelection",
+  "radius": 6
+}
+```
+
+### `selectRectangle`
+
+- Aliases: `selection.selectRectangle`
+- Required: `bounds {left,top,right,bottom}`
+- Supported args: `antiAlias`, `bounds`, `docRef`, `feather`, `mode`
+
+```json
+{
+  "op": "selectRectangle",
+  "bounds": {
+    "left": 80,
+    "top": 80,
+    "right": 1000,
+    "bottom": 1400
+  },
+  "mode": "replace"
+}
+```
+
+### `selectEllipse`
+
+- Aliases: `selection.selectEllipse`
+- Required: `bounds {left,top,right,bottom}`
+- Supported args: `antiAlias`, `bounds`, `docRef`, `feather`, `mode`
+
+```json
+{
+  "op": "selectEllipse",
+  "bounds": {
+    "left": 220,
+    "top": 260,
+    "right": 860,
+    "bottom": 900
+  },
+  "mode": "replace"
+}
+```
+
+### `selectPolygon`
+
+- Aliases: `selection.selectPolygon`
+- Required: `points[3+]`
+- Supported args: `antiAlias`, `docRef`, `feather`, `mode`, `points`
+
+```json
+{
+  "op": "selectPolygon",
+  "points": [
+    {
+      "x": 100,
+      "y": 100
+    },
+    {
+      "x": 900,
+      "y": 120
+    },
+    {
+      "x": 560,
+      "y": 900
+    }
+  ],
+  "mode": "replace"
+}
+```
+
+### `selectLayerPixels`
+
+- Aliases: `selection.loadLayerPixels`
+- Required: `target (or active layer)`
+- Supported args: `docRef`, `invert`, `mode`
+
+```json
+{
+  "op": "selectLayerPixels",
+  "target": {
+    "layerName": "Logo"
+  },
+  "mode": "replace"
+}
+```
+
+### `setSelection`
+
+- Aliases: `selection.set`
+- Required: shape-dependent coordinates (`rect`/`ellipse`: `x,y,width,height`; `polygon`: `points[3+]`)
+- Supported args: `shape`, `type`, `x`, `y`, `left`, `top`, `width`, `height`, `points`, `mode`, `feather`, `antiAlias`
+
+```json
+{
+  "op": "setSelection",
+  "shape": "rect",
+  "x": 120,
+  "y": 120,
+  "width": 600,
+  "height": 320
+}
+```
+
+### `modifySelection`
+
+- Aliases: `selection.modify`
+- Required: `mode` plus mode-specific args (`expand`/`contract`: `by`; `feather`/`smooth`: `radius`; `grow`: `by` or `tolerance`)
+- Supported args: `mode`, `by`, `radius`, `tolerance`, `applyEffectAtCanvasBounds`
+
+```json
+{
+  "op": "modifySelection",
+  "mode": "expand",
+  "by": 10
+}
+```
+
+### `createLayerMask`
+
+- Aliases: `layerMask.create`
+- Required: `target (or active layer)`
+- Supported args: `forceBatchPlay`, `fromSelection`, `hideAll`
+
+```json
+{
+  "op": "createLayerMask",
+  "target": {
+    "layerName": "Hero"
+  },
+  "fromSelection": true
+}
+```
+
+### `addLayerMask`
+
+- Aliases: `layerMask.add`
+- Required: `target (or active layer)`
+- Supported args: `forceBatchPlay`, `fromSelection`, `hideAll`
+
+```json
+{
+  "op": "addLayerMask",
+  "target": {
+    "layerName": "Hero"
+  },
+  "fromSelection": true
+}
+```
+
+### `deleteLayerMask`
+
+- Aliases: `layerMask.delete`
+- Required: `target (or active layer)`
+- Supported args: `apply`, `forceBatchPlay`
+
+```json
+{
+  "op": "deleteLayerMask",
+  "target": {
+    "layerName": "Hero"
+  },
+  "apply": false
+}
+```
+
+### `removeLayerMask`
+
+- Aliases: `layerMask.remove`
+- Required: `target (or active layer)`
+- Supported args: `apply`, `forceBatchPlay`
+
+```json
+{
+  "op": "removeLayerMask",
+  "target": {
+    "layerName": "Hero"
+  },
+  "apply": false
+}
+```
+
+### `applyLayerMask`
+
+- Aliases: `layerMask.apply`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "applyLayerMask",
+  "target": {
+    "layerName": "Hero"
+  }
+}
+```
+
+## Adjustments and filters
+
+### `createAdjustmentLayer`
+
+- Aliases: `adjustment.create`
+- Required: None (`levels` default when omitted)
+- Supported args: `adjustment`, `name`, `type`
+
+```json
+{
+  "op": "createAdjustmentLayer",
+  "type": "brightnessContrast",
+  "adjustment": {
+    "brightness": 10,
+    "contrast": 5
+  },
+  "name": "Grade"
+}
+```
+
+### `applyFilter`
+
+- Aliases: `filter.apply`
+- Required: `filter (or kind)`
+- Supported args: `filter`, `kind`
+
+```json
+{
+  "op": "applyFilter",
+  "target": {
+    "layerName": "Hero"
+  },
+  "filter": "gaussianBlur",
+  "radius": 4
+}
+```
+
+### `applyGaussianBlur`
+
+- Aliases: `filter.gaussianBlur`
+- Required: `target (or active layer)`, `radius`
+- Supported args: `radius`
+
+```json
+{
+  "op": "applyGaussianBlur",
+  "target": {
+    "layerName": "Hero"
+  },
+  "radius": 3
+}
+```
+
+### `applyUnsharpMask`
+
+- Aliases: `filter.unsharpMask`
+- Required: `target (or active layer)`, `amount, radius, threshold`
+- Supported args: `amount`, `radius`, `threshold`
+
+```json
+{
+  "op": "applyUnsharpMask",
+  "target": {
+    "layerName": "Hero"
+  },
+  "amount": 80,
+  "radius": 1.5,
+  "threshold": 2
+}
+```
+
+### `applySharpen`
+
+- Aliases: `filter.sharpen`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "applySharpen",
+  "target": {
+    "layerName": "Hero"
+  }
+}
+```
+
+### `applyBlur`
+
+- Aliases: `filter.blur`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "applyBlur",
+  "target": {
+    "layerName": "Hero"
+  }
+}
+```
+
+## Text and shapes
+
+### `createTextLayer`
+
+- Aliases: `text.create`
+- Required: `text (or contents)`
+- Supported args: `avoidOverlapWith`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`
+
+```json
+{
+  "op": "createTextLayer",
+  "name": "Headline",
+  "text": "Summer Launch",
+  "fontSize": 72,
+  "position": {
+    "x": 96,
+    "y": 220
+  }
+}
+```
+
+### `setText`
+
+- Aliases: `text.set`
+- Required: `target (or active layer)`, `text (or contents)`
+- Supported args: `contents`, `text`
+
+```json
+{
+  "op": "setText",
+  "target": {
+    "layerName": "Headline"
+  },
+  "text": "New headline copy"
+}
+```
+
+### `setTextStyle`
+
+- Aliases: `text.style`
+- Required: `target (or active layer)`, `at least one style/content field`
+- Supported args: `avoidOverlapWith`, `contents`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `maxHeight`, `maxWidth`, `minFontSize`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`
+
+```json
+{
+  "op": "setTextStyle",
+  "target": {
+    "layerName": "Headline"
+  },
+  "font": "Avenir Next",
+  "fontSize": 64,
+  "maxWidth": 860,
+  "overflow": "resize"
+}
+```
+
+### `createShapeLayer`
+
+- Aliases: `shape.create`
+- Required: `bounds or x/y/width/height`
+- Supported args: `bounds`, `color`, `fill`, `height`, `name`, `shape`, `shapeType`, `width`, `x`, `y`
+
+```json
+{
+  "op": "createShapeLayer",
+  "name": "CTA Button",
+  "shape": "rectangle",
+  "x": 88,
+  "y": 980,
+  "width": 320,
+  "height": 92,
+  "fill": "#2563eb"
+}
+```
+
+## Export and low-level
+
+### `export`
+
+- Aliases: `document.export`, `render`
+- Required: `output`
+- Supported args: `docRef`, `target`, `output`, `format`, `quality`, `metadata`, `sRGB`, `options`
+
+```json
+{
+  "op": "export",
+  "output": "./tmp/frame.png",
+  "format": "png",
+  "quality": 90
+}
+```
+
+### `exportDocument`
+
+- Aliases: `document.exportDocument`
+- Required: `output`
+- Supported args: `docRef`, `output`, `format`, `quality`, `metadata`, `sRGB`, `options`
+
+```json
+{
+  "op": "exportDocument",
+  "output": "./tmp/document.png",
+  "format": "png"
+}
+```
+
+### `exportLayer`
+
+- Aliases: `document.exportLayer`
+- Required: `target (or active layer)`, `output`
+- Supported args: `target`, `docRef`, `output`, `format`, `quality`, `metadata`, `sRGB`, `options`
+
+```json
+{
+  "op": "exportLayer",
+  "target": {
+    "layerName": "Hero"
+  },
+  "output": "./tmp/hero.png",
+  "format": "png"
+}
+```
+
+### `exportLayersByName`
+
+- Aliases: `document.exportLayersByName`
+- Required: `match`, `outputDir (or output)`
+- Supported args: `docRef`, `format`, `match`, `output`, `outputDir`
+
+```json
+{
+  "op": "exportLayersByName",
+  "match": "^(Hero|CTA)$",
+  "format": "png",
+  "outputDir": "./tmp/layers"
+}
+```
+
+### `batchPlay`
+
+- Aliases: `action.batchPlay`
+- Required: `commands[] or command/descriptor`
+- Supported args: `allowUnavailable`, `command`, `commands`, `descriptor`, `options`
+
+```json
+{
+  "op": "batchPlay",
+  "commands": [
+    {
+      "_obj": "get",
+      "_target": [
+        {
+          "_ref": "document",
+          "_enum": "ordinal",
+          "_value": "targetEnum"
+        }
+      ]
+    }
+  ]
+}
+```

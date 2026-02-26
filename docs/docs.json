@@ -30,6 +30,7 @@
           "reference/cli-reference",
           "reference/operation-envelope",
           "reference/operation-catalog",
+          "reference/operation-arguments-and-examples",
           "reference/rpc-and-mcp"
         ]
       },
