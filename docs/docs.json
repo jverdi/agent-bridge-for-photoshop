@@ -43,5 +43,11 @@
         ]
       }
     ]
-  }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/jverdi"
+    }
+  },
+  "description": "Automate Photoshop with AI Agents"
 }
