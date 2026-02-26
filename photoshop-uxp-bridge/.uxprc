@@ -6,12 +6,12 @@
                     "id": "PS",
                     "version": "27.3.1"
                 },
-                "pluginSessionId": "4c878ba0-7a05-494e-b38b-38421e09866b"
+                "pluginSessionId": "1dd26d3a-5223-406e-be67-b9124519e10c"
             }
         ],
         "info": {
             "id": "fcf89019",
-            "name": "PSAgent Bridge"
+            "name": "PS Agent Bridge"
         }
     }
 }

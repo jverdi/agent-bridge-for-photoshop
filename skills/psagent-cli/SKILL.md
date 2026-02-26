@@ -1,8 +1,8 @@
 ---
 name: ps-agent-bridge
-description: Use PS Agent Bridge for efficient Photoshop automation with the accompanying Photoshop CLI and UXP plugins
+description: Use PS Agent Bridge for Photoshop automation with the npm CLI and Photoshop plugin
 metadata:
-  short-description: Photoshop automation via plugin and CLI
+  short-description: Photoshop automation for end users
 ---
 
 # PS Agent Bridge Skill
@@ -11,25 +11,24 @@ Use this skill when automating Photoshop document creation and manipulation, suc
 
 ## Fast Start
 
-From repo root:
+Install CLI globally from npm:
 
 ```bash
-npm install
-npm run build
-npm run skill:install
+npm install -g @jverdi/ps-agent-bridge
 ```
 
-For Photoshop desktop mode:
+Install Photoshop plugin (one-time human setup):
+
+1. Open Creative Cloud Desktop.
+2. Go to `Stock & Marketplace`.
+3. Search for `PS Agent Bridge` plugin and install it.
+4. Open Photoshop and open the `PS Agent Bridge` panel.
+5. Bridge auto-connects on launch; click `Connect Bridge` only if needed.
+
+Start daemon for desktop mode:
 
 ```bash
-npm run dev -- bridge daemon
-npm run bridge:reload
-```
-
-If you want global `psagent` command access:
-
-```bash
-npm link
+psagent bridge daemon
 ```
 
 ## Canonical Command Surface
@@ -37,7 +36,7 @@ npm link
 Use these first:
 
 ```bash
-psagent session start --mode desktop
+psagent session start
 psagent bridge status
 psagent doc manifest
 psagent layer list
@@ -46,24 +45,12 @@ psagent events tail --count 40
 psagent doctor
 ```
 
-When global `psagent` is not linked yet, run via:
-
-```bash
-npm run dev -- <subcommand...>
-```
-
 ## MCP
 
 Start MCP server:
 
 ```bash
 psagent mcp-serve
-```
-
-or:
-
-```bash
-npm run mcp
 ```
 
 Main tools:
@@ -95,7 +82,7 @@ Main tools:
    - `psagent bridge status`
 2. If disconnected:
    - Ensure daemon running (`psagent bridge daemon`)
-   - Reload plugin (`npm run bridge:reload`)
+   - Re-open the `PSAgent Bridge` panel in Photoshop and click `Connect Bridge`
 3. If operation fails:
    - `psagent events tail --count 80`
    - Re-run op with same payload and inspect per-op `opResults`
@@ -105,6 +92,4 @@ Main tools:
 
 ## Working Agreement
 
-- After UXP plugin code/manifest changes, run `npm run bridge:reload` before Photoshop tests.
-- Prefer deterministic payloads under `examples/tests/ops` for repeatability.
-- Use `npm run test:integration` before handing off structural CLI/bridge changes.
+- Prefer deterministic payloads and explicit cleanup ops in automation tests.

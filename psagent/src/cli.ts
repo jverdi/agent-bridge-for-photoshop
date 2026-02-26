@@ -19,7 +19,7 @@ const program = new Command();
 
 program
   .name("psagent")
-  .description("Photoshop agent CLI scaffold")
+  .description("Photoshop Agent Bridge")
   .version("0.1.0")
   .showHelpAfterError()
   .option("--json", "JSON output")

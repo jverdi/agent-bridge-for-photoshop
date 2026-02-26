@@ -14,7 +14,33 @@ Agent-ready Photoshop automation scaffold with:
 
 ## Quick start
 
+### Users
+
+Install the CLI from npm:
+
 ```bash
+npm install -g @jverdi/ps-agent-bridge
+```
+
+Start daemon:
+
+```bash
+psagent bridge daemon
+```
+
+Install the Photoshop plugin from Creative Cloud Desktop:
+
+1. Open `Creative Cloud Desktop`.
+2. Go to `Stock & Marketplace > Plugins`.
+3. Search for `PS Agent Bridge` and install it.
+4. Open Photoshop and open the `PSAgent Bridge` panel.
+5. Bridge auto-connects on launch; click `Connect Bridge` only if needed.
+
+### Contributing
+
+```bash
+git clone https://github.com/jverdi/ps-agent-bridge.git
+cd ps-agent-bridge
 npm install
 npm run build
 ```
@@ -190,7 +216,7 @@ Integration tests:
 Desktop flow:
 
 1. Start daemon: `npm run dev -- bridge daemon`
-2. Load plugin in Photoshop UXP Dev Tool
+2. Load local plugin in Photoshop UXP Dev Tool
 3. Open `PSAgent Bridge` panel and click `Connect Bridge`
 4. Run CLI commands (`session start`, `layer list`, `op apply`, etc.)
 

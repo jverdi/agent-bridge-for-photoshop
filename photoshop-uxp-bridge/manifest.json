@@ -1,7 +1,7 @@
 {
   "manifestVersion": 5,
   "id": "fcf89019",
-  "name": "PSAgent Bridge",
+  "name": "PS Agent Bridge",
   "version": "0.1.3",
   "host": [
     {
@@ -14,7 +14,7 @@
       "type": "panel",
       "id": "psagent-panel",
       "label": {
-        "default": "PSAgent Bridge"
+        "default": "PS Agent Bridge"
       },
       "minimumSize": {
         "width": 220,
