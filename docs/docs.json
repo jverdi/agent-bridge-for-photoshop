@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "PSAgent Bridge",
+  "name": "PS Agent Bridge",
   "theme": "mint",
   "colors": {
     "primary": "#2F6DC8",

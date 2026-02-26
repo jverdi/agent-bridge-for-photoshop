@@ -82,7 +82,7 @@ Main tools:
    - `psagent bridge status`
 2. If disconnected:
    - Ensure daemon running (`psagent bridge daemon`)
-   - Re-open the `PSAgent Bridge` panel in Photoshop and click `Connect Bridge`
+   - Re-open the `PS Agent Bridge` panel in Photoshop and click `Connect Bridge`
 3. If operation fails:
    - `psagent events tail --count 80`
    - Re-run op with same payload and inspect per-op `opResults`
