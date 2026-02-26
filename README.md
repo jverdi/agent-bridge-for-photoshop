@@ -1,4 +1,6 @@
-# psagent scaffold
+# PS Agent Bridge
+
+Control Photoshop with Codex, Claude Code, or your favorite desktop LLM tools
 
 Formatted docs available at: https://ps-agent-bridge.jaredverdi.com
 
