@@ -5,13 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SKILL_NAME="${PSAGENT_SKILL_NAME:-psagent-cli}"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-SRC_FILE="${REPO_ROOT}/skill.md"
+SRC_FILE="${REPO_ROOT}/docs/skill.md"
 DST_DIR="${CODEX_HOME}/skills/${SKILL_NAME}"
 
 if [[ ! -f "${SRC_FILE}" ]]; then
-  legacy_docs_file="${REPO_ROOT}/docs/skill.md"
-  if [[ -f "${legacy_docs_file}" ]]; then
-    SRC_FILE="${legacy_docs_file}"
+  legacy_root_file="${REPO_ROOT}/skill.md"
+  if [[ -f "${legacy_root_file}" ]]; then
+    SRC_FILE="${legacy_root_file}"
   fi
 fi
 
