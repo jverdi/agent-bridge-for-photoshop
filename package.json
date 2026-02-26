@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jverdi/cccli.git"
+    "url": "https://github.com/jverdi/ps-agent-bridge.git"
   },
-  "homepage": "https://github.com/jverdi/cccli",
+  "homepage": "https://github.com/jverdi/ps-agent-bridge",
   "bugs": {
-    "url": "https://github.com/jverdi/cccli/issues"
+    "url": "https://github.com/jverdi/ps-agent-bridge/issues"
   },
   "files": [
     "dist",
