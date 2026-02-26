@@ -1,4 +1,4 @@
-export type AdapterMode = "desktop" | "cloud";
+export type AdapterMode = "desktop";
 
 export type OutputMode = "human" | "json" | "plain";
 
@@ -412,8 +412,6 @@ export interface ResolvedConfig {
   outputMode: OutputMode;
   timeoutMs: number;
   pluginEndpoint: string;
-  apiBase: string;
-  token?: string;
   dryRun: boolean;
   configPath: string;
   projectConfigPath: string;

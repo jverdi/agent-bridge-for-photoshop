@@ -31,7 +31,6 @@ program
   .option("--timeout <ms>", "Request timeout in ms")
   .option("--config <path>", "User config path")
   .option("--profile <name>", "Profile name")
-  .option("--mode <mode>", "desktop|cloud")
   .option("-n, --dry-run", "Dry-run operations");
 
 registerCapabilitiesCommand(program);

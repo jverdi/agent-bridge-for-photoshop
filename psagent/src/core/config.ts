@@ -4,11 +4,8 @@ import type { AdapterMode, GlobalCliOptions, ResolvedConfig, SessionState } from
 import { readConfigFile } from "./state.js";
 
 interface ConfigFileShape {
-  mode?: AdapterMode;
   profile?: string;
   pluginEndpoint?: string;
-  apiBase?: string;
-  token?: string;
   timeoutMs?: number;
   dryRun?: boolean;
 }
@@ -44,13 +41,7 @@ export function resolveConfig(cli: GlobalCliOptions, session: SessionState | nul
   const userConfig = readUserConfig(userConfigPath);
   const projectConfig = readProjectConfig(projectConfigPath);
 
-  const mode =
-    cli.mode ??
-    (process.env.PSAGENT_MODE as AdapterMode | undefined) ??
-    session?.mode ??
-    projectConfig.mode ??
-    userConfig.mode ??
-    "desktop";
+  const mode: AdapterMode = "desktop";
 
   const profile =
     cli.profile ?? process.env.PSAGENT_PROFILE ?? session?.profile ?? projectConfig.profile ?? userConfig.profile ?? "default";
@@ -67,10 +58,6 @@ export function resolveConfig(cli: GlobalCliOptions, session: SessionState | nul
   const pluginEndpoint =
     process.env.PSAGENT_PLUGIN_ENDPOINT ?? projectConfig.pluginEndpoint ?? userConfig.pluginEndpoint ?? "http://127.0.0.1:43120";
 
-  const apiBase = process.env.PSAGENT_API_BASE ?? projectConfig.apiBase ?? userConfig.apiBase ?? "https://image.adobe.io/pie/psdService";
-
-  const token = process.env.PSAGENT_TOKEN ?? projectConfig.token ?? userConfig.token;
-
   const dryRun =
     Boolean(cli.dryRun) ||
     parseBoolean(process.env.PSAGENT_DRY_RUN, false) ||
@@ -83,8 +70,6 @@ export function resolveConfig(cli: GlobalCliOptions, session: SessionState | nul
     outputMode,
     timeoutMs,
     pluginEndpoint,
-    apiBase,
-    token,
     dryRun,
     configPath: userConfigPath,
     projectConfigPath

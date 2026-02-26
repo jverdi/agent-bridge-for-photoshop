@@ -3,17 +3,6 @@ import { wrapAction, commandFromArgs } from "../core/command.js";
 import { CliError } from "../core/errors.js";
 import { printData } from "../core/output.js";
 import { buildRuntime, persistSession } from "../core/runtime.js";
-import type { AdapterMode } from "../types.js";
-
-function parseMode(input: string | undefined): AdapterMode | undefined {
-  if (!input) {
-    return undefined;
-  }
-  if (input === "desktop" || input === "cloud") {
-    return input;
-  }
-  throw new CliError(`Invalid mode '${input}'. Expected: desktop|cloud`, 2);
-}
 
 export function registerSessionCommands(program: Command): void {
   const session = program.command("session").description("Session lifecycle");
@@ -21,16 +10,13 @@ export function registerSessionCommands(program: Command): void {
   session
     .command("start")
     .description("Start a psagent session")
-    .option("--mode <mode>", "desktop|cloud")
     .option("--profile <name>", "Profile name")
     .action(
       wrapAction(async (...args) => {
         const command = commandFromArgs(args);
-        const options = command.opts<{ mode?: string; profile?: string }>();
-        const mode = parseMode(options.mode);
+        const options = command.opts<{ profile?: string }>();
 
         const runtime = buildRuntime(command, {
-          mode,
           profile: options.profile
         });
 

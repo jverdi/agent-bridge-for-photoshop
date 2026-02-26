@@ -4,7 +4,6 @@ Agent-ready Photoshop automation scaffold with:
 
 - `psagent` CLI command tree
 - Desktop adapter contract (`/rpc` bridge)
-- Cloud adapter placeholder (token-gated)
 - `ops.json` schema validation
 - Minimal MCP-style stdio server
 - Minimal UXP plugin scaffold (`photoshop-uxp-bridge/`)
@@ -50,7 +49,7 @@ Options:
 In another shell, run commands:
 
 ```bash
-npm run dev -- session start --mode desktop
+npm run dev -- session start
 npm run dev -- doc open ./sample.psd
 npm run dev -- layer list
 npm run dev -- op apply -f examples/ops.cleanup.sample.json --checkpoint
@@ -85,7 +84,6 @@ Global flags:
 - `--timeout <ms>`
 - `--config <path>`
 - `--profile <name>`
-- `--mode desktop|cloud`
 - `-n/--dry-run`
 
 ## Config precedence
@@ -97,13 +95,49 @@ Global flags:
 
 Env vars:
 
-- `PSAGENT_MODE`
 - `PSAGENT_PROFILE`
 - `PSAGENT_TIMEOUT_MS`
 - `PSAGENT_PLUGIN_ENDPOINT`
-- `PSAGENT_API_BASE`
-- `PSAGENT_TOKEN`
 - `PSAGENT_DRY_RUN`
+
+## npm publishing via GitHub Releases
+
+This repo is configured to publish to npm from GitHub Actions when a release is published.
+
+Workflow:
+
+1. Bump `package.json` version.
+2. Push commit + tag (for example `v0.2.0`).
+3. Create/publish a GitHub Release from that tag.
+
+What the workflow does:
+
+- Runs `npm ci`, `npm run check`, `npm run build`
+- Verifies release tag matches `package.json` version (`scripts/release/verify-release-tag.mjs`)
+- Publishes to npm
+  - normal release -> `latest`
+  - prerelease -> `next`
+
+Required secret:
+
+- `NPM_TOKEN` (npm automation token with publish permissions for this package)
+
+## Docs publishing automation (Mintlify)
+
+- Docs source lives in `docs/`.
+- Deployment is intended to run via Mintlify GitHub integration from `main`.
+- Target domain: `ps-agent-bridge.jaredverdi.com`.
+- CI guard: `.github/workflows/docs-validate.yml` runs docs validation and broken-link checks.
+
+Local docs check:
+
+```bash
+npm run docs:validate
+```
+
+Setup details:
+
+- [internal/docs-publishing-and-domain.md](./internal/docs-publishing-and-domain.md)
 
 ## MCP server (scaffold)
 

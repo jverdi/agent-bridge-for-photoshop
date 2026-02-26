@@ -1,5 +1,5 @@
 import type { CapabilityMap } from "../core/capabilities.js";
-import type { AdapterEvent, Checkpoint, HealthStatus, OperationApplyResponse, OperationEnvelope } from "../types.js";
+import type { AdapterEvent, AdapterMode, Checkpoint, HealthStatus, OperationApplyResponse, OperationEnvelope } from "../types.js";
 
 export interface OpenDocumentResult {
   docRef: string;
@@ -26,7 +26,7 @@ export interface RenderResult {
 }
 
 export interface PsAdapter {
-  readonly mode: "desktop" | "cloud";
+  readonly mode: AdapterMode;
 
   capabilities(): CapabilityMap;
   health(): Promise<HealthStatus>;

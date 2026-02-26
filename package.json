@@ -1,15 +1,36 @@
 {
   "name": "cccli-psagent-scaffold",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
-  "description": "Photoshop agent CLI scaffold with desktop and cloud adapters",
+  "description": "Photoshop agent CLI scaffold with desktop adapter",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jverdi/cccli.git"
+  },
+  "homepage": "https://github.com/jverdi/cccli",
+  "bugs": {
+    "url": "https://github.com/jverdi/cccli/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "psagent": "dist/psagent/src/cli.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
+    "docs:validate": "bash scripts/docs/validate.sh",
+    "prepublishOnly": "npm run check && npm run build",
     "dev": "tsx psagent/src/cli.ts",
     "test:integration": "tsx --test tests/integration/**/*.test.ts",
     "start": "node dist/psagent/src/cli.js",

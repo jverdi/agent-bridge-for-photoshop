@@ -1,0 +1,130 @@
+{
+  "transactionId": "real-world-ecommerce-product-page-vibrant-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    { "op": "createDocument", "name": "Voltora Gear - Ecommerce Product Page", "width": 1440, "height": 2200, "resolution": 72, "ref": "doc" },
+
+    { "op": "createShapeLayer", "name": "BG Base", "x": 0, "y": 0, "width": 1440, "height": 2200, "fill": "#0B1026" },
+    { "op": "createShapeLayer", "name": "Glow Violet", "shape": "ellipse", "x": -280, "y": -220, "width": 940, "height": 940, "fill": "#6F4DFF" },
+    { "op": "setLayerProps", "target": { "layerName": "Glow Violet" }, "opacity": 42 },
+    { "op": "applyFilter", "target": { "layerName": "Glow Violet" }, "filter": "gaussianBlur", "radius": 210 },
+
+    { "op": "createShapeLayer", "name": "Glow Cyan", "shape": "ellipse", "x": 860, "y": -160, "width": 760, "height": 760, "fill": "#08D3E8" },
+    { "op": "setLayerProps", "target": { "layerName": "Glow Cyan" }, "opacity": 36 },
+    { "op": "applyFilter", "target": { "layerName": "Glow Cyan" }, "filter": "gaussianBlur", "radius": 180 },
+
+    { "op": "createShapeLayer", "name": "Glow Coral", "shape": "ellipse", "x": 180, "y": 1380, "width": 1060, "height": 860, "fill": "#FF764A" },
+    { "op": "setLayerProps", "target": { "layerName": "Glow Coral" }, "opacity": 24 },
+    { "op": "applyFilter", "target": { "layerName": "Glow Coral" }, "filter": "gaussianBlur", "radius": 240 },
+
+    { "op": "createShapeLayer", "name": "Page Surface", "x": 70, "y": 60, "width": 1300, "height": 2080, "fill": "#F7FAFF" },
+    { "op": "createShapeLayer", "name": "Top Nav", "x": 110, "y": 90, "width": 1220, "height": 84, "fill": "#FFFFFF" },
+    { "op": "createTextLayer", "name": "Brand", "text": "VOLTORA GEAR", "fontSize": 38, "position": { "x": 142, "y": 146 } },
+    { "op": "createTextLayer", "name": "Nav Links", "text": "Shop   New Arrivals   Bundles   Support", "fontSize": 22, "position": { "x": 820, "y": 142 } },
+
+    { "op": "createShapeLayer", "name": "Hero Backdrop", "x": 110, "y": 190, "width": 1220, "height": 760, "fill": "#EAF0FF" },
+    { "op": "createShapeLayer", "name": "Hero Image Frame", "x": 140, "y": 220, "width": 570, "height": 700, "fill": "#FFFFFF" },
+    {
+      "op": "placeAsset",
+      "name": "Hero Product Image",
+      "input": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1600&q=80",
+      "fit": "contain",
+      "fitRect": { "x": 150, "y": 230, "width": 550, "height": 680 },
+      "fitAlign": "center"
+    },
+
+    { "op": "createShapeLayer", "name": "Hero Copy Panel", "x": 745, "y": 220, "width": 555, "height": 700, "fill": "#FFFFFF" },
+    { "op": "createShapeLayer", "name": "Badge", "x": 785, "y": 260, "width": 210, "height": 52, "fill": "#2E3DFF" },
+    { "op": "createTextLayer", "name": "Badge Text", "text": "LIMITED EDITION", "fontSize": 18, "position": { "x": 814, "y": 295 } },
+
+    { "op": "createTextLayer", "name": "Hero Title", "text": "AeroPulse Pro\nWireless Headphones", "fontSize": 62, "position": { "x": 785, "y": 392 } },
+    { "op": "setTextStyle", "target": { "layerName": "Hero Title" }, "fontSize": 62, "maxWidth": 470, "maxHeight": 210, "minFontSize": 34, "hardMinFontSize": 28, "overflow": "clip", "ellipsis": true },
+
+    { "op": "createTextLayer", "name": "Hero Subtitle", "text": "Studio-grade sound, 48-hour battery, and adaptive noise cancellation for everyday flow.", "fontSize": 30, "position": { "x": 785, "y": 556 } },
+    { "op": "setTextStyle", "target": { "layerName": "Hero Subtitle" }, "fontSize": 30, "maxWidth": 470, "maxHeight": 138, "minFontSize": 20, "hardMinFontSize": 16, "overflow": "clip", "ellipsis": true, "avoidOverlapWith": [{ "layerName": "Hero Title" }], "overlapGap": 18 },
+
+    { "op": "createTextLayer", "name": "Hero Price", "text": "$249", "fontSize": 56, "position": { "x": 785, "y": 670 } },
+    { "op": "setTextStyle", "target": { "layerName": "Hero Price" }, "fontSize": 56, "maxWidth": 190, "maxHeight": 74, "minFontSize": 40, "hardMinFontSize": 30, "overflow": "resize", "avoidOverlapWith": [{ "layerName": "Hero Subtitle" }], "overlapGap": 16 },
+
+    { "op": "createShapeLayer", "name": "Primary CTA", "x": 785, "y": 744, "width": 250, "height": 78, "fill": "#5A4DFF" },
+    { "op": "createTextLayer", "name": "Primary CTA Label", "text": "Add to Cart", "fontSize": 31, "position": { "x": 842, "y": 794 } },
+
+    { "op": "createShapeLayer", "name": "Secondary CTA", "x": 1060, "y": 744, "width": 210, "height": 78, "fill": "#DDE5FF" },
+    { "op": "createTextLayer", "name": "Secondary CTA Label", "text": "Buy Now", "fontSize": 30, "position": { "x": 1112, "y": 794 } },
+
+    { "op": "createTextLayer", "name": "Shipping Note", "text": "Free 2-day shipping · 30-day returns", "fontSize": 22, "position": { "x": 785, "y": 872 } },
+
+    { "op": "createTextLayer", "name": "Section Title", "text": "Complete the Look", "fontSize": 54, "position": { "x": 120, "y": 1038 } },
+    { "op": "createTextLayer", "name": "Section Subtitle", "text": "High-conversion accessories customers pair with AeroPulse Pro.", "fontSize": 24, "position": { "x": 120, "y": 1080 } },
+
+    { "op": "createShapeLayer", "name": "Card 1", "x": 120, "y": 1120, "width": 380, "height": 560, "fill": "#FFFFFF" },
+    { "op": "createShapeLayer", "name": "Card 1 Image Frame", "x": 145, "y": 1150, "width": 330, "height": 260, "fill": "#F1F5FF" },
+    {
+      "op": "placeAsset",
+      "name": "Card 1 Image",
+      "input": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=80",
+      "fit": "contain",
+      "fitRect": { "x": 150, "y": 1155, "width": 320, "height": 250 },
+      "fitAlign": "center"
+    },
+    { "op": "createTextLayer", "name": "Card 1 Title", "text": "PulseTrack Smartwatch", "fontSize": 34, "position": { "x": 150, "y": 1465 } },
+    { "op": "setTextStyle", "target": { "layerName": "Card 1 Title" }, "fontSize": 34, "maxWidth": 320, "maxHeight": 92, "minFontSize": 22, "hardMinFontSize": 18, "overflow": "clip", "ellipsis": true },
+    { "op": "createTextLayer", "name": "Card 1 Price", "text": "$189", "fontSize": 34, "position": { "x": 150, "y": 1525 } },
+    { "op": "setTextStyle", "target": { "layerName": "Card 1 Price" }, "fontSize": 34, "maxWidth": 120, "maxHeight": 55, "minFontSize": 24, "hardMinFontSize": 18, "overflow": "resize", "avoidOverlapWith": [{ "layerName": "Card 1 Title" }], "overlapGap": 12 },
+    { "op": "createShapeLayer", "name": "Card 1 CTA", "x": 150, "y": 1592, "width": 320, "height": 68, "fill": "#CCE7FF" },
+    { "op": "createTextLayer", "name": "Card 1 CTA Label", "text": "Add Accessory", "fontSize": 27, "position": { "x": 217, "y": 1636 } },
+
+    { "op": "createShapeLayer", "name": "Card 2", "x": 530, "y": 1120, "width": 380, "height": 560, "fill": "#FFFFFF" },
+    { "op": "createShapeLayer", "name": "Card 2 Image Frame", "x": 555, "y": 1150, "width": 330, "height": 260, "fill": "#FFF2ED" },
+    {
+      "op": "placeAsset",
+      "name": "Card 2 Image",
+      "input": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80",
+      "fit": "contain",
+      "fitRect": { "x": 560, "y": 1155, "width": 320, "height": 250 },
+      "fitAlign": "center"
+    },
+    { "op": "createTextLayer", "name": "Card 2 Title", "text": "VoltRun Urban Sneakers", "fontSize": 34, "position": { "x": 560, "y": 1465 } },
+    { "op": "setTextStyle", "target": { "layerName": "Card 2 Title" }, "fontSize": 34, "maxWidth": 320, "maxHeight": 92, "minFontSize": 22, "hardMinFontSize": 18, "overflow": "clip", "ellipsis": true },
+    { "op": "createTextLayer", "name": "Card 2 Price", "text": "$129", "fontSize": 34, "position": { "x": 560, "y": 1525 } },
+    { "op": "setTextStyle", "target": { "layerName": "Card 2 Price" }, "fontSize": 34, "maxWidth": 120, "maxHeight": 55, "minFontSize": 24, "hardMinFontSize": 18, "overflow": "resize", "avoidOverlapWith": [{ "layerName": "Card 2 Title" }], "overlapGap": 12 },
+    { "op": "createShapeLayer", "name": "Card 2 CTA", "x": 560, "y": 1592, "width": 320, "height": 68, "fill": "#FFE0D2" },
+    { "op": "createTextLayer", "name": "Card 2 CTA Label", "text": "Add Accessory", "fontSize": 27, "position": { "x": 627, "y": 1636 } },
+
+    { "op": "createShapeLayer", "name": "Card 3", "x": 940, "y": 1120, "width": 380, "height": 560, "fill": "#FFFFFF" },
+    { "op": "createShapeLayer", "name": "Card 3 Image Frame", "x": 965, "y": 1150, "width": 330, "height": 260, "fill": "#EEF4F8" },
+    {
+      "op": "placeAsset",
+      "name": "Card 3 Image",
+      "input": "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1200&q=80",
+      "fit": "contain",
+      "fitRect": { "x": 970, "y": 1155, "width": 320, "height": 250 },
+      "fitAlign": "center"
+    },
+    { "op": "createTextLayer", "name": "Card 3 Title", "text": "Creator Lens Kit", "fontSize": 34, "position": { "x": 970, "y": 1465 } },
+    { "op": "setTextStyle", "target": { "layerName": "Card 3 Title" }, "fontSize": 34, "maxWidth": 320, "maxHeight": 92, "minFontSize": 22, "hardMinFontSize": 18, "overflow": "clip", "ellipsis": true },
+    { "op": "createTextLayer", "name": "Card 3 Price", "text": "$159", "fontSize": 34, "position": { "x": 970, "y": 1525 } },
+    { "op": "setTextStyle", "target": { "layerName": "Card 3 Price" }, "fontSize": 34, "maxWidth": 120, "maxHeight": 55, "minFontSize": 24, "hardMinFontSize": 18, "overflow": "resize", "avoidOverlapWith": [{ "layerName": "Card 3 Title" }], "overlapGap": 12 },
+    { "op": "createShapeLayer", "name": "Card 3 CTA", "x": 970, "y": 1592, "width": 320, "height": 68, "fill": "#D7F4E6" },
+    { "op": "createTextLayer", "name": "Card 3 CTA Label", "text": "Add Accessory", "fontSize": 27, "position": { "x": 1037, "y": 1636 } },
+
+    { "op": "createShapeLayer", "name": "Footer Strip", "x": 110, "y": 1730, "width": 1220, "height": 360, "fill": "#FFFFFF" },
+    { "op": "createTextLayer", "name": "Footer Title", "text": "Get launch drops before everyone else", "fontSize": 48, "position": { "x": 140, "y": 1810 } },
+    { "op": "setTextStyle", "target": { "layerName": "Footer Title" }, "fontSize": 48, "maxWidth": 760, "maxHeight": 120, "minFontSize": 28, "hardMinFontSize": 22, "overflow": "clip", "ellipsis": true },
+    { "op": "createShapeLayer", "name": "Email Input", "x": 140, "y": 1880, "width": 760, "height": 86, "fill": "#EEF3FF" },
+    { "op": "createTextLayer", "name": "Email Placeholder", "text": "you@company.com", "fontSize": 30, "position": { "x": 170, "y": 1935 } },
+    { "op": "createShapeLayer", "name": "Subscribe Button", "x": 930, "y": 1880, "width": 360, "height": 86, "fill": "#4F45FF" },
+    { "op": "createTextLayer", "name": "Subscribe Label", "text": "Notify Me", "fontSize": 34, "position": { "x": 1035, "y": 1935 } },
+
+    { "op": "createAdjustmentLayer", "name": "Global Contrast", "adjustment": "levels" },
+    { "op": "setLayerProps", "target": { "layerName": "Global Contrast" }, "opacity": 20 },
+
+    { "op": "exportDocument", "format": "png", "output": "./tmp/ecommerce-product-page-vibrant.png" }
+  ],
+  "safety": {
+    "dryRun": false,
+    "onError": "abort"
+  }
+}

@@ -2852,6 +2852,180 @@ function setTextFontSize(textItem, size) {
   return false;
 }
 
+function normalizeLinefeeds(text) {
+  return String(text ?? "").replace(/\r\n?/g, "\n");
+}
+
+function measureTextBoundsForContents(layer, contents) {
+  if (!layer?.textItem) {
+    return null;
+  }
+
+  const textItem = layer.textItem;
+  const originalContents = textItem.contents;
+  try {
+    textItem.contents = normalizeTextContents(contents);
+    return boundsToRect(layer);
+  } finally {
+    textItem.contents = originalContents;
+  }
+}
+
+function textBoundsFit(bounds, maxWidth, maxHeight) {
+  if (!bounds) {
+    return false;
+  }
+  if (Number.isFinite(maxWidth) && bounds.width > maxWidth) {
+    return false;
+  }
+  if (Number.isFinite(maxHeight) && bounds.height > maxHeight) {
+    return false;
+  }
+  return true;
+}
+
+function wrapTextForWidth(layer, sourceText, maxWidth) {
+  const originalText = normalizeLinefeeds(sourceText);
+  if (!layer?.textItem || !Number.isFinite(maxWidth) || maxWidth <= 0 || !originalText.trim()) {
+    return {
+      wrapped: false,
+      text: originalText
+    };
+  }
+
+  const paragraphs = originalText.split("\n");
+  let wrappedAny = false;
+  const wrappedParagraphs = [];
+
+  for (const paragraph of paragraphs) {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (words.length <= 1) {
+      wrappedParagraphs.push(paragraph);
+      continue;
+    }
+
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i += 1) {
+      const word = words[i];
+      const candidate = `${currentLine} ${word}`;
+      const candidateBounds = measureTextBoundsForContents(layer, candidate);
+
+      if (candidateBounds && candidateBounds.width <= maxWidth) {
+        currentLine = candidate;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    lines.push(currentLine);
+
+    const wrappedParagraph = lines.join("\n");
+    if (wrappedParagraph !== paragraph) {
+      wrappedAny = true;
+    }
+    wrappedParagraphs.push(wrappedParagraph);
+  }
+
+  return {
+    wrapped: wrappedAny,
+    text: wrappedParagraphs.join("\n")
+  };
+}
+
+function wrapTextLayerToWidth(layer, maxWidth) {
+  const wrapResult = wrapTextForWidth(layer, layer?.textItem?.contents, maxWidth);
+  if (!wrapResult.wrapped || !layer?.textItem) {
+    return {
+      wrapped: false,
+      text: wrapResult.text
+    };
+  }
+
+  layer.textItem.contents = normalizeTextContents(wrapResult.text);
+  return {
+    wrapped: true,
+    text: wrapResult.text
+  };
+}
+
+function clipTextLayerToBounds(layer, constraints) {
+  const maxWidth = toFiniteNumber(constraints?.maxWidth, undefined);
+  const maxHeight = toFiniteNumber(constraints?.maxHeight, undefined);
+  const ellipsis = constraints?.ellipsis !== false;
+
+  if (!layer?.textItem || (!Number.isFinite(maxWidth) && !Number.isFinite(maxHeight))) {
+    return {
+      clipped: false,
+      fit: false
+    };
+  }
+
+  const base = normalizeLinefeeds(layer.textItem.contents).trimEnd();
+  if (!base) {
+    return {
+      clipped: false,
+      fit: false
+    };
+  }
+
+  let attempts = 0;
+  let candidateBase = base;
+  let resolvedText = null;
+
+  while (candidateBase && attempts < 1000) {
+    const suffix = candidateBase === base || !ellipsis ? "" : "…";
+    const candidate = `${candidateBase}${suffix}`;
+    const wrappedCandidate = Number.isFinite(maxWidth) ? wrapTextForWidth(layer, candidate, maxWidth).text : candidate;
+    const bounds = measureTextBoundsForContents(layer, wrappedCandidate);
+    if (textBoundsFit(bounds, maxWidth, maxHeight)) {
+      resolvedText = wrappedCandidate;
+      break;
+    }
+
+    const next = candidateBase.replace(/\s*\S+\s*$/, "").trimEnd();
+    if (!next || next === candidateBase) {
+      break;
+    }
+    candidateBase = next;
+    attempts += 1;
+  }
+
+  if (!resolvedText && ellipsis) {
+    const wrappedEllipsis = Number.isFinite(maxWidth) ? wrapTextForWidth(layer, "…", maxWidth).text : "…";
+    const ellipsisBounds = measureTextBoundsForContents(layer, wrappedEllipsis);
+    if (textBoundsFit(ellipsisBounds, maxWidth, maxHeight)) {
+      resolvedText = wrappedEllipsis;
+    }
+  }
+
+  if (!resolvedText) {
+    return {
+      clipped: false,
+      fit: false,
+      attempts
+    };
+  }
+
+  const current = normalizeLinefeeds(layer.textItem.contents);
+  const nextText = normalizeLinefeeds(resolvedText);
+  if (current === nextText) {
+    return {
+      clipped: false,
+      fit: true,
+      attempts
+    };
+  }
+
+  layer.textItem.contents = normalizeTextContents(resolvedText);
+  return {
+    clipped: true,
+    fit: true,
+    attempts
+  };
+}
+
 function rectsOverlap(a, b, gap = 0) {
   if (!a || !b) {
     return false;
@@ -2863,32 +3037,46 @@ async function fitTextLayerBounds(layer, constraints) {
   const maxWidth = toFiniteNumber(constraints?.maxWidth, undefined);
   const maxHeight = toFiniteNumber(constraints?.maxHeight, undefined);
   const minFontSize = toFiniteNumber(constraints?.minFontSize, 8);
+  const hardMinFontSize = Math.max(1, toFiniteNumber(constraints?.hardMinFontSize, 6));
+  const rawOverflow = String(constraints?.overflowMode || constraints?.overflow || "resize").trim().toLowerCase();
+  const overflowMode = rawOverflow === "clip" ? "clip" : "resize";
+  const ellipsis = constraints?.ellipsis !== false;
 
   if (!layer?.textItem || (!Number.isFinite(maxWidth) && !Number.isFinite(maxHeight))) {
     return {
-      adjusted: false,
-      iterations: 0
-    };
-  }
-
-  let fontSize = getTextFontSize(layer.textItem);
-  let bounds = boundsToRect(layer);
-  if (!Number.isFinite(fontSize) || !bounds) {
-    return {
+      requested: false,
       adjusted: false,
       iterations: 0
     };
   }
 
   let adjusted = false;
-  let iterations = 0;
+  if (Number.isFinite(maxWidth)) {
+    const wrapResult = wrapTextLayerToWidth(layer, maxWidth);
+    if (wrapResult.wrapped) {
+      adjusted = true;
+    }
+  }
 
-  while (
+  let fontSize = getTextFontSize(layer.textItem);
+  let bounds = boundsToRect(layer);
+  if (!Number.isFinite(fontSize) || !bounds) {
+    return {
+      requested: true,
+      adjusted,
+      iterations: 0
+    };
+  }
+
+  let iterations = 0;
+  const shouldReduce = () =>
     bounds &&
-    ((Number.isFinite(maxWidth) && bounds.width > maxWidth) || (Number.isFinite(maxHeight) && bounds.height > maxHeight)) &&
+    !textBoundsFit(bounds, maxWidth, maxHeight) &&
+    Number.isFinite(fontSize) &&
     fontSize > minFontSize &&
-    iterations < 300
-  ) {
+    iterations < 300;
+
+  while (shouldReduce()) {
     fontSize = Math.max(minFontSize, fontSize - 1);
     if (!setTextFontSize(layer.textItem, fontSize)) {
       break;
@@ -2898,8 +3086,43 @@ async function fitTextLayerBounds(layer, constraints) {
     iterations += 1;
   }
 
+  if (overflowMode === "resize") {
+    while (
+      bounds &&
+      !textBoundsFit(bounds, maxWidth, maxHeight) &&
+      Number.isFinite(fontSize) &&
+      fontSize > hardMinFontSize &&
+      iterations < 300
+    ) {
+      fontSize = Math.max(hardMinFontSize, fontSize - 1);
+      if (!setTextFontSize(layer.textItem, fontSize)) {
+        break;
+      }
+      bounds = boundsToRect(layer);
+      adjusted = true;
+      iterations += 1;
+    }
+  }
+
+  let clipped = false;
+  if (bounds && !textBoundsFit(bounds, maxWidth, maxHeight)) {
+    const clipResult = clipTextLayerToBounds(layer, {
+      maxWidth,
+      maxHeight,
+      ellipsis
+    });
+    if (clipResult.clipped) {
+      adjusted = true;
+      clipped = true;
+      bounds = boundsToRect(layer);
+    }
+  }
+
   return {
+    requested: true,
     adjusted,
+    clipped,
+    overflowMode,
     iterations,
     fontSize,
     bounds
@@ -3916,7 +4139,10 @@ async function runCreateTextLayer(op, ctx) {
     await fitTextLayerBounds(layer, {
       maxWidth,
       maxHeight,
-      minFontSize: toFiniteNumber(op.minFontSize, 8)
+      minFontSize: toFiniteNumber(op.minFontSize, 8),
+      hardMinFontSize: toFiniteNumber(op.hardMinFontSize, 6),
+      overflowMode: op.overflowMode ?? op.overflow,
+      ellipsis: op.ellipsis
     });
   }
 
@@ -4035,13 +4261,17 @@ async function runSetTextStyle(op, ctx) {
 
   const maxWidth = toFiniteNumber(op.maxWidth, undefined);
   const maxHeight = toFiniteNumber(op.maxHeight, undefined);
-  if (Number.isFinite(maxWidth) || Number.isFinite(maxHeight)) {
+  const hasFitConstraints = Number.isFinite(maxWidth) || Number.isFinite(maxHeight);
+  if (hasFitConstraints) {
     const fitResult = await fitTextLayerBounds(layer, {
       maxWidth,
       maxHeight,
-      minFontSize: toFiniteNumber(op.minFontSize, 8)
+      minFontSize: toFiniteNumber(op.minFontSize, 8),
+      hardMinFontSize: toFiniteNumber(op.hardMinFontSize, 6),
+      overflowMode: op.overflowMode ?? op.overflow,
+      ellipsis: op.ellipsis
     });
-    if (fitResult.adjusted) {
+    if (fitResult.adjusted || fitResult.requested) {
       applied += 1;
     }
   }

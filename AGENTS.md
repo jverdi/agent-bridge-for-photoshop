@@ -22,3 +22,5 @@
   - `cd /Users/jverdi/code/cccli/docs && npx -y node@22 "$(command -v mint)" dev --no-open`
 - If you need background mode:
   - `cd /Users/jverdi/code/cccli/docs && nohup npx -y node@22 "$(command -v mint)" dev --no-open > /tmp/cccli-mint-dev.log 2>&1 &`
+- Before merging docs changes, run:
+  - `npm run docs:validate`

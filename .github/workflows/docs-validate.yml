@@ -1,0 +1,37 @@
+name: Docs Validate
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs-validate.yml"
+      - "scripts/docs/validate.sh"
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs-validate.yml"
+      - "scripts/docs/validate.sh"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Mint CLI
+        run: npm i -g mint
+
+      - name: Validate docs and links
+        run: bash scripts/docs/validate.sh

@@ -21,8 +21,6 @@ export function registerDoctorCommand(program: Command): void {
           configPath: runtime.config.configPath,
           projectConfigPath: runtime.config.projectConfigPath,
           pluginEndpoint: runtime.config.pluginEndpoint,
-          apiBase: runtime.config.apiBase,
-          tokenConfigured: Boolean(runtime.config.token),
           session: runtime.session,
           health,
           capabilities
@@ -33,9 +31,7 @@ export function registerDoctorCommand(program: Command): void {
           `profile=${payload.profile}`,
           `healthOk=${String(payload.health.ok)}`,
           `healthDetail=${payload.health.detail}`,
-          `tokenConfigured=${String(payload.tokenConfigured)}`,
-          `pluginEndpoint=${payload.pluginEndpoint}`,
-          `apiBase=${payload.apiBase}`
+          `pluginEndpoint=${payload.pluginEndpoint}`
         ]);
 
         if (!health.ok) {

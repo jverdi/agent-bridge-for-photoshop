@@ -244,7 +244,7 @@ async function readFixture(name: string): Promise<any> {
 
 test("applies full planned first-class capability payload through CLI -> adapter -> /rpc", async () => {
   await withHarness(async (harness) => {
-    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    const sessionStart = await harness.runJson(["session", "start"]);
     assertSuccess(sessionStart, "session start");
 
     const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
@@ -279,7 +279,7 @@ test("applies full planned first-class capability payload through CLI -> adapter
 
 test("mutating operations update layer/text state and report success", async () => {
   await withHarness(async (harness) => {
-    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    const sessionStart = await harness.runJson(["session", "start"]);
     assertSuccess(sessionStart, "session start");
 
     const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
@@ -308,7 +308,7 @@ test("mutating operations update layer/text state and report success", async () 
 
 test("dry-run preserves state and abort-on-error stops subsequent mutations", async () => {
   await withHarness(async (harness) => {
-    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    const sessionStart = await harness.runJson(["session", "start"]);
     assertSuccess(sessionStart, "session start");
 
     const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
@@ -346,7 +346,7 @@ test("dry-run preserves state and abort-on-error stops subsequent mutations", as
 
 test("agent controls payload validates refs + onError continue/abort + rollbackOnError + checkpoints", async () => {
   await withHarness(async (harness) => {
-    const sessionStart = await harness.runJson(["session", "start", "--mode", "desktop"]);
+    const sessionStart = await harness.runJson(["session", "start"]);
     assertSuccess(sessionStart, "session start");
 
     const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);

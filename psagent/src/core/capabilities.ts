@@ -20,16 +20,9 @@ const desktopCapabilities: CapabilityMap = {
   events: true
 };
 
-const cloudCapabilities: CapabilityMap = {
-  openDocument: true,
-  manifest: true,
-  listLayers: true,
-  applyOps: true,
-  render: true,
-  checkpoints: false,
-  events: true
-};
-
 export function capabilitiesForMode(mode: AdapterMode): CapabilityMap {
-  return mode === "desktop" ? desktopCapabilities : cloudCapabilities;
+  if (mode !== "desktop") {
+    throw new Error(`Unsupported adapter mode: ${mode}`);
+  }
+  return desktopCapabilities;
 }
