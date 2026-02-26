@@ -39,7 +39,7 @@ Install the Photoshop plugin from Creative Cloud Desktop:
 ### Contributing
 
 ```bash
-git clone https://github.com/jverdi/ps-agent-bridge.git
+git clone https://github.com/jverdi/agent-bridge-for-photoshop.git
 cd ps-agent-bridge
 npm install
 npm run build

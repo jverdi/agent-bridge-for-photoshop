@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jverdi/ps-agent-bridge.git"
+    "url": "https://github.com/jverdi/agent-bridge-for-photoshop.git"
   },
-  "homepage": "https://github.com/jverdi/ps-agent-bridge",
+  "homepage": "https://github.com/jverdi/agent-bridge-for-photoshop",
   "bugs": {
-    "url": "https://github.com/jverdi/ps-agent-bridge/issues"
+    "url": "https://github.com/jverdi/agent-bridge-for-photoshop/issues"
   },
   "files": [
     "dist",

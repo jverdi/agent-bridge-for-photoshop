@@ -13,7 +13,7 @@ Goal: publish docs automatically from this repo and serve them at:
 
 ## One-time setup in Mintlify
 
-1. Connect Mintlify to this repository (`jverdi/ps-agent-bridge`).
+1. Connect Mintlify to this repository (`jverdi/agent-bridge-for-photoshop`).
 2. Set docs directory to `docs`.
 3. Set production branch to `main`.
 4. Add custom domain: `agent-bridge-for-photoshop.jaredverdi.com`.
