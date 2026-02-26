@@ -31,7 +31,28 @@
       "preferredFloatingSize": {
         "width": 360,
         "height": 560
-      }
+      },
+      "icons": [
+          {
+              "width": 23, "height": 23, "path": "icons/icon.png", "scale": [ 1, 2 ],
+              "theme": [ "darkest", "dark" ]
+          }, {
+              "width": 23, "height": 23, "path": "icons/icon.png", "scale": [ 1, 2 ],
+              "theme": [ "lightest", "light" ]
+          }
+      ]
+
+    }
+  ],
+  "icons": [
+    {
+        "width": 23,
+        "height": 23,
+        "path": "icons/icon.png",
+        "scale": [
+            1,
+            2
+        ]
     }
   ],
   "main": "index.html",
