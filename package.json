@@ -1,5 +1,5 @@
 {
-  "name": "@jverdi/ps-agent-bridge",
+  "name": "@jverdi/agent-bridge-for-photoshop",
   "version": "0.1.1",
   "type": "module",
   "description": "Photoshop agent CLI scaffold with desktop adapter",

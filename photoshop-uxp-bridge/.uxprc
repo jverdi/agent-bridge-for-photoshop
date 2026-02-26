@@ -6,12 +6,12 @@
                     "id": "PS",
                     "version": "27.3.1"
                 },
-                "pluginSessionId": "679cdf30-e86b-4a2e-b8a2-35b51f6868ce"
+                "pluginSessionId": "56237b4e-28c0-4d88-909c-2c0b1e50e806"
             }
         ],
         "info": {
             "id": "fcf89019",
-            "name": "PS Agent Bridge"
+            "name": "Agent Bridge for Photoshop"
         }
     }
 }

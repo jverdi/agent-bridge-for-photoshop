@@ -1,6 +1,6 @@
 # PSAgent UXP bridge
 
-Photoshop UXP panel plugin (`PS Agent Bridge`) that exposes runtime APIs on `globalThis.psagentBridge` and connects to the psagent daemon over `/bridge/*` polling.
+Photoshop UXP panel plugin (`Agent Bridge`) that exposes runtime APIs on `globalThis.psagentBridge` and connects to the psagent daemon over `/bridge/*` polling.
 
 ## Runtime methods
 

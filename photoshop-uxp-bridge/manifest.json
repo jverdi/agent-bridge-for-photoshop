@@ -1,21 +1,24 @@
 {
-  "manifestVersion": 5,
   "id": "fcf89019",
-  "name": "PS Agent Bridge",
+  "name": "Agent Bridge for Photoshop",
   "version": "0.1.3",
-  "host": [
-    {
-      "app": "PS",
-      "minVersion": "24.0.0"
-    }
-  ],
+  "main": "index.html",
+  "manifestVersion": 5,
+  "host": {
+    "app": "PS",
+    "minVersion": "24.0.0"
+  },
+  "requiredPermissions": {
+    "network": {
+      "domains": "all"
+    },
+    "localFileSystem": "fullAccess"
+  },
   "entrypoints": [
     {
       "type": "panel",
-      "id": "psagent-panel",
-      "label": {
-        "default": "PS Agent Bridge"
-      },
+      "id": "agent-bridge-for-photoshop-panel",
+      "label": "Agent Bridge",
       "minimumSize": {
         "width": 220,
         "height": 180
@@ -33,33 +36,23 @@
         "height": 560
       },
       "icons": [
-          {
-              "width": 23, "height": 23, "path": "icons/icon.png", "scale": [ 1, 2 ],
-              "theme": [ "darkest", "dark" ]
-          }, {
-              "width": 23, "height": 23, "path": "icons/icon.png", "scale": [ 1, 2 ],
-              "theme": [ "lightest", "light" ]
-          }
+        {
+          "width": 23, 
+          "height": 23, 
+          "path": "icons/panel-icon.png", 
+          "scale": [ 1, 1.25, 1.5, 2 ],
+          "theme": [ "all" ]
+        }
       ]
-
     }
   ],
   "icons": [
     {
-        "width": 23,
-        "height": 23,
-        "path": "icons/icon.png",
-        "scale": [
-            1,
-            2
-        ]
+      "width": 23, 
+      "height": 23, 
+      "path": "icons/icon.png", 
+      "scale": [ 1, 2 ],
+      "theme": [ "all" ]
     }
-  ],
-  "main": "index.html",
-  "requiredPermissions": {
-    "network": {
-      "domains": "all"
-    },
-    "localFileSystem": "fullAccess"
-  }
+  ]
 }

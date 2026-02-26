@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "PS Agent Bridge",
+  "name": "Agent Bridge for Photoshop",
   "theme": "mint",
   "colors": {
     "primary": "#2F6DC8",

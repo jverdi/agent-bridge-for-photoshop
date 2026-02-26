@@ -1,8 +1,8 @@
-# PS Agent Bridge
+# Agent Bridge for Photoshop
 
 Control Photoshop with Codex, Claude Code, or your favorite desktop LLM tools
 
-Formatted docs available at: https://ps-agent-bridge.jaredverdi.com
+Formatted docs available at: https://agent-bridge-for-photoshop.jaredverdi.com
 
 Agent-ready Photoshop automation scaffold with:
 
@@ -19,7 +19,7 @@ Agent-ready Photoshop automation scaffold with:
 Install the CLI from npm:
 
 ```bash
-npm install -g @jverdi/ps-agent-bridge
+npm install -g @jverdi/agent-bridge-for-photoshop
 ```
 
 Start daemon:
@@ -32,8 +32,8 @@ Install the Photoshop plugin from Creative Cloud Desktop:
 
 1. Open `Creative Cloud Desktop`.
 2. Go to `Stock & Marketplace > Plugins`.
-3. Search for `PS Agent Bridge` and install it.
-4. Open Photoshop and open the `PS Agent Bridge` panel.
+3. Search for `Agent Bridge for Photoshop` and install it.
+4. Open Photoshop and open the `Agent Bridge` panel.
 5. Bridge auto-connects on launch; click `Connect Bridge` only if needed.
 
 ### Contributing
@@ -157,7 +157,7 @@ Prerequisite:
 
 - Docs source lives in `docs/`.
 - Deployment is intended to run via Mintlify GitHub integration from `main`.
-- Target domain: `ps-agent-bridge.jaredverdi.com`.
+- Target domain: `agent-bridge-for-photoshop.jaredverdi.com`.
 - CI guard: `.github/workflows/docs-validate.yml` runs docs validation and broken-link checks.
 
 Local docs check:
@@ -218,7 +218,7 @@ Desktop flow:
 
 1. Start daemon: `npm run dev -- bridge daemon`
 2. Load local plugin in Photoshop UXP Dev Tool
-3. Open `PS Agent Bridge` panel and click `Connect Bridge`
+3. Open `Agent Bridge` panel and click `Connect Bridge`
 4. Run CLI commands (`session start`, `layer list`, `op apply`, etc.)
 
 CLI desktop adapter always targets daemon `/rpc`, and daemon forwards to connected UXP client via `/bridge/*`.

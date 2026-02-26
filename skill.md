@@ -1,18 +1,18 @@
 ---
-name: ps-agent-bridge
-description: Use PS Agent Bridge to automate Photoshop workflows from CLI tools and coding agents.
+name: agent-bridge-for-photoshop
+description: Use Agent Bridge for Photoshop to automate Photoshop workflows from CLI tools and coding agents.
 license: MIT
-compatibility: Requires Adobe Photoshop 24+, the PS Agent Bridge plugin, and Node.js 20+.
+compatibility: Requires Adobe Photoshop 24+, the Agent Bridge for Photoshop plugin, and Node.js 20+.
 metadata:
   author: jverdi
   version: "1.0"
 ---
 
-# PS Agent Bridge Skill
+# Agent Bridge for Photoshop Skill
 
 ## Product summary
 
-PS Agent Bridge is a local automation stack for Photoshop that provides a stable command surface, operation payload schema, and runtime bridge between CLI workflows and Photoshop UXP APIs. Agents use the `psagent` CLI to control Photoshop documents, layers, and operations through JSON operation envelopes. The bridge daemon runs on `http://127.0.0.1:43120` and brokers calls between the CLI and a UXP plugin inside Photoshop. Key files: `.psagent.json` (project config), `~/.config/psagent/config.json` (user config), operation envelope JSON payloads. Primary CLI: `psagent` with subcommands for sessions, documents, layers, operations, rendering, checkpoints, and diagnostics. MCP server available via `psagent mcp-serve` for agent tool integration.
+Agent Bridge for Photoshop is a local automation stack for Photoshop that provides a stable command surface, operation payload schema, and runtime bridge between CLI workflows and Photoshop UXP APIs. Agents use the `psagent` CLI to control Photoshop documents, layers, and operations through JSON operation envelopes. The bridge daemon runs on `http://127.0.0.1:43120` and brokers calls between the CLI and a UXP plugin inside Photoshop. Key files: `.psagent.json` (project config), `~/.config/psagent/config.json` (user config), operation envelope JSON payloads. Primary CLI: `psagent` with subcommands for sessions, documents, layers, operations, rendering, checkpoints, and diagnostics. MCP server available via `psagent mcp-serve` for agent tool integration.
 
 ## When to use
 
@@ -211,7 +211,7 @@ Flags override environment variables, which override session config, which overr
 
 ## Verification checklist
 
-Before submitting work with PS Agent Bridge:
+Before submitting work with Agent Bridge for Photoshop:
 
 - [ ] Bridge daemon is running on `127.0.0.1:43120` (verify with `psagent bridge status`)
 - [ ] UXP plugin is connected (status shows "Connected", not "Disconnected")
@@ -228,11 +228,11 @@ Before submitting work with PS Agent Bridge:
 
 ## Resources
 
-- **Comprehensive navigation**: https://ps-agent-bridge.jaredverdi.com/llms.txt — full page-by-page documentation index
-- **CLI reference**: https://ps-agent-bridge.jaredverdi.com/reference/cli-reference — all commands, flags, and exit codes
-- **Operation envelope**: https://ps-agent-bridge.jaredverdi.com/reference/operation-envelope — payload schema, refs, safety controls, error handling
-- **Operation arguments and examples**: https://ps-agent-bridge.jaredverdi.com/reference/operation-arguments-and-examples — operation parameters and real payload examples
-- **Real-world workflows**: https://ps-agent-bridge.jaredverdi.com/guides/real-world-workflows — patterns for agent-driven creative automation
+- **Comprehensive navigation**: https://agent-bridge-for-photoshop.jaredverdi.com/llms.txt — full page-by-page documentation index
+- **CLI reference**: https://agent-bridge-for-photoshop.jaredverdi.com/reference/cli-reference — all commands, flags, and exit codes
+- **Operation envelope**: https://agent-bridge-for-photoshop.jaredverdi.com/reference/operation-envelope — payload schema, refs, safety controls, error handling
+- **Operation arguments and examples**: https://agent-bridge-for-photoshop.jaredverdi.com/reference/operation-arguments-and-examples — operation parameters and real payload examples
+- **Real-world workflows**: https://agent-bridge-for-photoshop.jaredverdi.com/guides/real-world-workflows — patterns for agent-driven creative automation
 
 
-> For additional documentation and navigation, see: https://ps-agent-bridge.jaredverdi.com/llms.txt
+> For additional documentation and navigation, see: https://agent-bridge-for-photoshop.jaredverdi.com/llms.txt

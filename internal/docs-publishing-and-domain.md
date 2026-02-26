@@ -2,7 +2,7 @@
 
 Goal: publish docs automatically from this repo and serve them at:
 
-- `https://ps-agent-bridge.jaredverdi.com`
+- `https://agent-bridge-for-photoshop.jaredverdi.com`
 
 ## Automation model
 
@@ -16,7 +16,7 @@ Goal: publish docs automatically from this repo and serve them at:
 1. Connect Mintlify to this repository (`jverdi/ps-agent-bridge`).
 2. Set docs directory to `docs`.
 3. Set production branch to `main`.
-4. Add custom domain: `ps-agent-bridge.jaredverdi.com`.
+4. Add custom domain: `agent-bridge-for-photoshop.jaredverdi.com`.
 
 References:
 
@@ -27,7 +27,7 @@ References:
 
 Create a CNAME record:
 
-- Name: `ps-agent-bridge`
+- Name: `agent-bridge-for-photoshop`
 - Target: `cname.mintlify-dns.com`
 - Proxy: DNS-only (recommended while validating)
 

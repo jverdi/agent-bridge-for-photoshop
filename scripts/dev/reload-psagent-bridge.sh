@@ -231,5 +231,5 @@ process.stdin.on("end", () => {
 done
 
 echo "Timed out waiting for bridge connection after ${timeout_seconds}s." >&2
-echo "Tip: ensure bridge daemon is running and PSAgent Bridge panel is visible in Photoshop." >&2
+echo "Tip: ensure bridge daemon is running and Agent Bridge panel is visible in Photoshop." >&2
 exit 3
