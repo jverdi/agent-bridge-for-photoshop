@@ -95,8 +95,12 @@ async function getFreePort(): Promise<number> {
 }
 
 async function runCliJson(args: string[], env: NodeJS.ProcessEnv): Promise<CliRunResult> {
+  return runCli(["--json", ...args], env);
+}
+
+async function runCli(args: string[], env: NodeJS.ProcessEnv): Promise<CliRunResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ["--import", "tsx", "psagent/src/cli.ts", "--json", ...args], {
+    const child = spawn(process.execPath, ["--import", "tsx", "psagent/src/cli.ts", ...args], {
       cwd: repoRoot,
       env,
       stdio: ["ignore", "pipe", "pipe"]
@@ -342,6 +346,35 @@ test("dry-run preserves state and abort-on-error stops subsequent mutations", as
     const afterFailureNames = (afterFailure.json as any).layers.map((layer: any) => layer.name).sort();
     assert.deepEqual(afterFailureNames, ["Hero", "Title"], "abort behavior should prevent second deleteLayer from running");
   });
+});
+
+test("op help lists operation catalog and per-operation argument docs", async () => {
+  const opHelp = await runCli(["op", "--help"], process.env);
+  assert.equal(opHelp.code, 0, `op --help failed\nstdout:\n${opHelp.stdout}\nstderr:\n${opHelp.stderr}`);
+  assert.match(opHelp.stdout, /Operation catalog \(from docs\/reference\/operation-catalog\.mdx\):/u);
+  assert.match(opHelp.stdout, /\bcreateDocument\b/u);
+  assert.match(opHelp.stdout, /\bbatchPlay\b/u);
+  assert.match(opHelp.stdout, /psagent op <operation> --help/u);
+
+  const createDocumentHelp = await runCli(["op", "createDocument", "--help"], process.env);
+  assert.equal(
+    createDocumentHelp.code,
+    0,
+    `op createDocument --help failed\nstdout:\n${createDocumentHelp.stdout}\nstderr:\n${createDocumentHelp.stderr}`
+  );
+  assert.match(
+    createDocumentHelp.stdout,
+    /Operation arguments and examples \(from docs\/reference\/operation-arguments-and-examples\.mdx\):/u
+  );
+  assert.match(createDocumentHelp.stdout, /Required: None/u);
+  assert.match(createDocumentHelp.stdout, /Supported args: .*width/u);
+  assert.match(createDocumentHelp.stdout, /Aliases: .*doc\.create/u);
+  assert.match(createDocumentHelp.stdout, /"op": "createDocument"/u);
+
+  const aliasHelp = await runCli(["op", "addLayerMask", "--help"], process.env);
+  assert.equal(aliasHelp.code, 0, `op addLayerMask --help failed\nstdout:\n${aliasHelp.stdout}\nstderr:\n${aliasHelp.stderr}`);
+  assert.match(aliasHelp.stdout, /Supported args: .*fromSelection/u);
+  assert.match(aliasHelp.stdout, /"op": "addLayerMask"/u);
 });
 
 test("agent controls payload validates refs + onError continue/abort + rollbackOnError + checkpoints", async () => {
