@@ -50,7 +50,23 @@ Reach for this skill when:
 Use these before writing an `ops` payload:
 
 - `psagent op -h` to see the full operation list/capability catalog.
-- `psagent op <command> -h` to see required args, supported args, aliases, and a copy/paste JSON example for that operation.
+- `psagent op <command> -h` to see required args, supported args, notes, aliases, and a copy/paste JSON example for that operation.
+
+### Working patterns (quality-first)
+
+- **Centered headline pattern**: create or style text with `position.x = 0`, set `maxWidth` to the canvas/section width, and set `alignment: "center"` instead of hand-tuning `x` values.
+- **Baseline positioning pattern**: `createTextLayer.position.y` is the text baseline (not visual top). For large text, set a lower baseline and iterate with quick renders.
+- **Readable text pattern**: set explicit text color via `textColor`/`color` and add `setLayerEffects` drop shadow or stroke for contrast on busy photos.
+- **Shape polish pattern**: use `createShapeLayer` with `cornerRadius` and `fillType: "gradient"` for modern buttons/badges.
+- **Photo frame pattern**: place photo layer above a frame shape and apply `createClippingMask` to constrain photo bounds.
+- **Single-transaction pattern**: keep all dependent operations for one document in the same `op apply` call to avoid active-document drift between CLI invocations.
+- **Iterative composition pattern**: render after each logical group (background, photo, text, accents, CTA) and adjust before adding the next group.
+
+### BatchPlay recipes (high-friction cases)
+
+- **Preserve text style while changing color**: if using `textStyleRange`, include the full style payload (`fontPostScriptName`, `fontName`, `fontStyleName`, `size` with `unitDouble/pointsUnit`, and `color`) because Photoshop replaces style objects rather than merging.
+- **Prefer first-class text ops when possible**: use `createTextLayer`/`setTextStyle` for normal font/size/color/alignment workflows. Reserve `batchPlay` for gaps not covered by first-class ops.
+- **Descriptor units are explicit**: numeric descriptor values often require `{ "_obj": "unitDouble", "_unit": "pointsUnit", "_value": <number> }` (or other unit enums) instead of raw numbers.
 
 ### Global flags
 
@@ -162,7 +178,7 @@ Flags override environment variables, which override session config, which overr
 4. **Create operation envelope**:
    - Write JSON file with `ops` array, `safety` settings, and `refs` for layer targeting
    - Use `$refName` syntax to reference layers created earlier in same transaction
-   - Always set text style explicitly after `createTextLayer`
+   - Keep all dependent ops in one envelope for the same document
 
 5. **Test with dry-run**:
    - `psagent op apply -f ops.json --dry-run`
@@ -174,10 +190,13 @@ Flags override environment variables, which override session config, which overr
    - Inspect result for `applied`, `failed`, `aborted` counts
    - If errors, check `failures[]` array for details
 
-7. **Validate output**:
-   - `psagent layer list` to confirm layer structure
-   - `psagent render --format png --out ./out.png` to export
-   - `psagent doc manifest` to inspect document properties
+7. **Validate output iteratively**:
+   - After each logical block, render and inspect:
+     - `psagent render --format png --out ./preview-step-<n>.png`
+   - Confirm structure and refs:
+     - `psagent layer list`
+   - Inspect document properties as needed:
+     - `psagent doc manifest`
 
 8. **Rollback if needed**:
    - `psagent checkpoint list` to see available snapshots
@@ -202,7 +221,15 @@ Flags override environment variables, which override session config, which overr
 
 - **UXP plugin disconnected**: `psagent bridge status` shows "Disconnected" if Photoshop UXP panel is not loaded. Reload plugin with `npm run bridge:reload` or manually in Photoshop.
 
-- **Text style not applied**: Always call `setTextStyle` immediately after `createTextLayer`. Creating text without style can cause rendering issues. Include `fontSize`, `font`, and `maxWidth` to prevent overflow.
+- **Text style confusion**: `createTextLayer` already supports styling/fitting args like `font`, `fontName`, `fontSize`, `textColor`, `alignment`, `maxWidth`, and overlap controls. Use `setTextStyle` for post-create edits or re-styling existing text layers.
+
+- **Text baseline mismatch**: `createTextLayer.position.y` is baseline-aligned. If text appears clipped or too high, move the baseline down and re-render.
+
+- **BatchPlay textStyleRange resets styles**: `textStyleRange[*].textStyle` replaces style values; it does not patch them. Include full style fields (font + size + color) in the descriptor.
+
+- **Active document drift across commands**: Photoshop can switch active documents between separate CLI calls. Put dependent operations in one `op apply` payload and set `doc.ref`.
+
+- **saveDocumentAs key confusion**: `saveDocumentAs` uses `output` for destination path. `path` is not a valid key.
 
 - **Layer references fail silently**: Use `$refName` syntax to reference layers created in the same transaction. If reference is wrong, operation may target wrong layer or fail. Validate with `--dry-run` first.
 
@@ -227,7 +254,8 @@ Before submitting work with Agent Bridge for Photoshop:
 - [ ] Document is open (`psagent doc open` succeeded, `psagent layer list` returns layers)
 - [ ] Operation envelope JSON is valid (test with `--dry-run` first)
 - [ ] All layer references use correct `$refName` syntax
-- [ ] Text operations include explicit `setTextStyle` with `fontSize` and `font`
+- [ ] Text operations account for baseline positioning (`position.y`)
+- [ ] If using `batchPlay` textStyleRange, descriptors include full style fields to preserve font/size/color
 - [ ] Error policy is set correctly (`onError: "abort"` or `"continue"` as needed)
 - [ ] Checkpoint is created before risky operations (`--checkpoint` flag)
 - [ ] Result payload shows expected `applied` count (not `failed` or `aborted`)

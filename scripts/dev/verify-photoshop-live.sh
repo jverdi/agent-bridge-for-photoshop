@@ -100,7 +100,11 @@ cat >"${happy_payload}" <<'JSON'
 }
 JSON
 
-happy_result="$(npm run -s dev -- op apply -f "${happy_payload}" --json)"
+if ! happy_result="$(npm run -s dev -- op apply -f "${happy_payload}" --json 2>&1)"; then
+  echo "Live happy-path integration command failed." >&2
+  echo "${happy_result}" >&2
+  exit 1
+fi
 happy_applied="$(json_eval "$happy_result" "j.result.applied")"
 happy_failed="$(json_eval "$happy_result" "j.result.failed")"
 happy_aborted="$(json_eval "$happy_result" "j.result.aborted")"
@@ -130,7 +134,11 @@ cat >"${validation_payload}" <<'JSON'
 }
 JSON
 
-validation_result="$(npm run -s dev -- op apply -f "${validation_payload}" --json)"
+if ! validation_result="$(npm run -s dev -- op apply -f "${validation_payload}" --json 2>&1)"; then
+  echo "Live validation-path integration command failed." >&2
+  echo "${validation_result}" >&2
+  exit 1
+fi
 validation_applied="$(json_eval "$validation_result" "j.result.applied")"
 validation_failed="$(json_eval "$validation_result" "j.result.failed")"
 validation_aborted="$(json_eval "$validation_result" "j.result.aborted")"
@@ -149,5 +157,54 @@ if [[ "${validation_msg}" != *"setTextStyle requires at least one supported fiel
 fi
 echo "live-integration-validation ok failed=${validation_failed}"
 
-rm -f "${happy_payload}" "${validation_payload}"
+first_class_render="/tmp/psagent-live-first-class.png"
+rm -f "${first_class_render}"
+
+first_class_payload="$(mktemp)"
+cat >"${first_class_payload}" <<JSON
+{
+  "transactionId": "live-ps-first-class-001",
+  "doc": { "ref": "active" },
+  "ops": [
+    { "op": "createDocument", "name": "First Class Verify", "width": 1080, "height": 1080, "resolution": 72, "mode": "rgbColor", "fill": "white", "ref": "docA" },
+    { "op": "createShapeLayer", "name": "Card", "shape": "rectangle", "x": 120, "y": 140, "width": 840, "height": 800, "cornerRadius": 52, "fillType": "gradient", "gradient": { "from": "#14532d", "to": "#4ade80", "angle": 90 }, "ref": "card" },
+    { "op": "placeAsset", "name": "HeroPhoto", "input": "https://picsum.photos/seed/psagent-first-class/1024/1024.jpg", "ref": "photo" },
+    { "op": "createClippingMask", "target": "\$photo" },
+    { "op": "createTextLayer", "name": "Title", "text": "PLANT ERA", "fontName": "Arial-BoldMT", "fontSize": 88, "textColor": "#f8fafc", "alignment": "center", "position": { "x": 540, "y": 240 }, "maxWidth": 840, "ref": "title" },
+    { "op": "setTextStyle", "target": "\$title", "textColor": "#ffffff", "alignment": "center", "maxWidth": 840 },
+    { "op": "setLayerEffects", "target": "\$title", "dropShadow": { "color": "#000000", "opacity": 45, "distance": 10, "size": 18 }, "stroke": { "color": "#ffffff", "size": 2, "position": "outside", "opacity": 100 } },
+    { "op": "applyAddNoise", "target": "\$photo", "amount": 4, "distribution": "uniform", "monochromatic": true },
+    { "op": "exportDocument", "format": "png", "output": "${first_class_render}" },
+    { "op": "closeDocument", "save": false }
+  ],
+  "safety": {
+    "dryRun": false,
+    "onError": "abort"
+  }
+}
+JSON
+
+if ! first_class_result="$(npm run -s dev -- op apply -f "${first_class_payload}" --json 2>&1)"; then
+  echo "Live first-class feature integration command failed." >&2
+  echo "${first_class_result}" >&2
+  exit 1
+fi
+first_class_applied="$(json_eval "$first_class_result" "j.result.applied")"
+first_class_failed="$(json_eval "$first_class_result" "j.result.failed")"
+first_class_aborted="$(json_eval "$first_class_result" "j.result.aborted")"
+
+if [[ "${first_class_applied}" != "10" || "${first_class_failed}" != "0" || "${first_class_aborted}" != "false" ]]; then
+  echo "Live first-class feature integration failed expectations." >&2
+  echo "${first_class_result}" >&2
+  exit 1
+fi
+
+if [[ ! -s "${first_class_render}" ]]; then
+  echo "Live first-class feature integration did not produce render output: ${first_class_render}" >&2
+  echo "${first_class_result}" >&2
+  exit 1
+fi
+echo "live-integration-first-class ok applied=${first_class_applied} render=${first_class_render}"
+
+rm -f "${happy_payload}" "${validation_payload}" "${first_class_payload}"
 echo "verify-photoshop-live=ok"

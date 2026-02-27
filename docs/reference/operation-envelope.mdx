@@ -68,3 +68,4 @@ Later operations resolve `$name` and `$name.path`.
 - Envelope schema is defined in `psagent/src/core/op-schema.ts`.
 - Unknown operation names fail in the bridge resolver.
 - Some operations are schema-loose (`additionalProperties: true`) to allow Photoshop-specific option maps.
+- Photoshop focus can shift between separate CLI calls; group dependent operations in one envelope with an explicit `doc.ref`.

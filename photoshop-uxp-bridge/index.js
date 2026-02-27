@@ -90,7 +90,11 @@ const OP_REQUIRES_LAYER_TARGET = new Set([
   "createLayerMask",
   "deleteLayerMask",
   "applyLayerMask",
+  "createClippingMask",
+  "releaseClippingMask",
+  "setLayerEffects",
   "applyGaussianBlur",
+  "applyAddNoise",
   "applyUnsharpMask",
   "applySharpen",
   "applyBlur",
@@ -1407,6 +1411,69 @@ function resolveFlipAxis(rawAxis) {
   return normalizeEnumLookup(constants?.FlipAxis, rawAxis, rawAxis);
 }
 
+function resolveTextJustification(rawAlignment) {
+  if (!rawAlignment) {
+    return undefined;
+  }
+  const token = String(rawAlignment).trim().toLowerCase();
+  const alias =
+    token === "center" || token === "centre" || token === "middle"
+      ? "center"
+      : token === "left" || token === "start"
+        ? "left"
+        : token === "right" || token === "end"
+          ? "right"
+          : token === "justify" || token === "full" || token === "fulljustify"
+            ? "fullJustify"
+            : token;
+  return normalizeEnumLookup(constants?.Justification, alias, alias);
+}
+
+function resolveCreateDocumentMode(rawMode) {
+  if (!rawMode) {
+    return undefined;
+  }
+
+  const token = normalizeLookupToken(rawMode);
+  const aliasMap = {
+    rgb: "rgb",
+    rgbcolor: "rgb",
+    cmyk: "cmyk",
+    cmykcolor: "cmyk",
+    lab: "lab",
+    labcolor: "lab",
+    grayscale: "grayscale",
+    greyscale: "grayscale",
+    bitmap: "bitmap",
+    indexed: "indexedcolor",
+    indexedcolor: "indexedcolor",
+    multichannel: "multichannel",
+    duotone: "duotone"
+  };
+  const alias = aliasMap[token] || rawMode;
+  return normalizeEnumLookup(constants?.NewDocumentMode, alias, alias);
+}
+
+function resolveCreateDocumentFill(rawFill) {
+  if (!rawFill) {
+    return undefined;
+  }
+
+  const token = normalizeLookupToken(rawFill);
+  const aliasMap = {
+    white: "white",
+    black: "black",
+    transparent: "transparent",
+    background: "backgroundColor",
+    backgroundcolor: "backgroundColor",
+    bg: "backgroundColor",
+    bgcolor: "backgroundColor"
+  };
+  const alias = aliasMap[token] || rawFill;
+  const fillConstants = constants?.DocumentFill || constants?.NewDocumentFill;
+  return normalizeEnumLookup(fillConstants, alias, alias);
+}
+
 function resolveSelectionType(rawType) {
   if (!rawType) {
     return constants?.SelectionType?.REPLACE;
@@ -1453,8 +1520,8 @@ async function runCreateDocument(op, ctx) {
   if (Number.isFinite(Number(op.height))) options.height = Number(op.height);
   if (Number.isFinite(Number(op.resolution))) options.resolution = Number(op.resolution);
   if (Number.isFinite(Number(op.depth))) options.depth = Number(op.depth);
-  if (op.mode) options.mode = String(op.mode);
-  if (op.fill) options.fill = String(op.fill);
+  if (op.mode) options.mode = resolveCreateDocumentMode(op.mode);
+  if (op.fill) options.fill = resolveCreateDocumentFill(op.fill);
   if (op.preset) options.preset = String(op.preset);
   if (op.profile) options.profile = String(op.profile);
 
@@ -3937,6 +4004,219 @@ async function runApplyLayerMask(op, ctx) {
   }, ctx);
 }
 
+async function runSetClippingMaskState(op, ctx, enabled) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  let applied = false;
+  let lastError = null;
+
+  try {
+    if ("isClippingMask" in layer) {
+      layer.isClippingMask = Boolean(enabled);
+      applied = true;
+    }
+  } catch (error) {
+    lastError = error;
+  }
+
+  if (!applied) {
+    try {
+      if ("grouped" in layer) {
+        layer.grouped = Boolean(enabled);
+        applied = true;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!applied) {
+    try {
+      await selectLayer(layer);
+      await runBatchPlay(
+        [
+          {
+            _obj: "set",
+            _target: [
+              {
+                _ref: "layer",
+                _enum: "ordinal",
+                _value: "targetEnum"
+              }
+            ],
+            to: {
+              _obj: "layer",
+              grouped: Boolean(enabled)
+            },
+            _options: {
+              dialogOptions: "dontDisplay"
+            }
+          }
+        ],
+        undefined,
+        { op: enabled ? "createClippingMask" : "releaseClippingMask" }
+      );
+      applied = true;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!applied && lastError) {
+    throw new Error(
+      `${enabled ? "createClippingMask" : "releaseClippingMask"} failed on '${layer.name}': ${sanitizeError(lastError).message}`
+    );
+  }
+
+  if (!applied) {
+    throw new Error(`${enabled ? "createClippingMask" : "releaseClippingMask"} is unavailable for '${layer.name}'`);
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `${enabled ? "Enabled" : "Released"} clipping mask on '${layer.name}'`
+  };
+}
+
+async function runCreateClippingMask(op, ctx) {
+  return runSetClippingMaskState(op, ctx, true);
+}
+
+async function runReleaseClippingMask(op, ctx) {
+  return runSetClippingMaskState(op, ctx, false);
+}
+
+function resolveStrokePosition(rawPosition) {
+  const token = String(rawPosition || "outside").trim().toLowerCase();
+  if (token === "inside") {
+    return "insetFrame";
+  }
+  if (token === "center" || token === "centre") {
+    return "centeredFrame";
+  }
+  return "outsetFrame";
+}
+
+function buildLayerEffectsDescriptor(op) {
+  if (op.clear === true) {
+    return {
+      _obj: "layerEffects"
+    };
+  }
+
+  if (op.effects && typeof op.effects === "object") {
+    const cloned = cloneSerializable(op.effects);
+    return {
+      _obj: "layerEffects",
+      ...cloned
+    };
+  }
+
+  const descriptor = {
+    _obj: "layerEffects",
+    scale: unitPercent(toFiniteNumber(op.scale, 100))
+  };
+  let hasAnyEffect = false;
+
+  if (op.dropShadow && typeof op.dropShadow === "object") {
+    const shadow = op.dropShadow;
+    descriptor.dropShadow = {
+      _obj: "dropShadow",
+      enabled: shadow.enabled !== false,
+      present: true,
+      showInDialog: false,
+      mode: {
+        _enum: "blendMode",
+        _value: String(shadow.blendMode || "multiply")
+      },
+      color: toRgbColorDescriptor(shadow.color || "#000000"),
+      opacity: unitPercent(toFiniteNumber(shadow.opacity, 50)),
+      useGlobalAngle: shadow.useGlobalAngle !== false,
+      localLightingAngle: unitAngle(toFiniteNumber(shadow.angle, 120)),
+      distance: unitPx(toFiniteNumber(shadow.distance, 8)),
+      chokeMatte: unitPx(toFiniteNumber(shadow.choke ?? shadow.spread, 0)),
+      blur: unitPx(toFiniteNumber(shadow.size ?? shadow.blur, 8)),
+      noise: unitPercent(toFiniteNumber(shadow.noise, 0)),
+      antiAlias: Boolean(shadow.antiAlias ?? false),
+      transferSpec: {
+        _obj: "shapeCurveType",
+        name: "Linear"
+      },
+      layerConceals: shadow.layerConceals !== false
+    };
+    hasAnyEffect = true;
+  }
+
+  if (op.stroke && typeof op.stroke === "object") {
+    const stroke = op.stroke;
+    descriptor.frameFX = {
+      _obj: "frameFX",
+      enabled: stroke.enabled !== false,
+      present: true,
+      showInDialog: false,
+      style: {
+        _enum: "frameStyle",
+        _value: resolveStrokePosition(stroke.position)
+      },
+      paintType: {
+        _enum: "frameFill",
+        _value: "solidColor"
+      },
+      mode: {
+        _enum: "blendMode",
+        _value: String(stroke.blendMode || "normal")
+      },
+      opacity: unitPercent(toFiniteNumber(stroke.opacity, 100)),
+      size: unitPx(toFiniteNumber(stroke.size, 2)),
+      color: toRgbColorDescriptor(stroke.color || "#000000")
+    };
+    hasAnyEffect = true;
+  }
+
+  if (!hasAnyEffect) {
+    throw new Error("setLayerEffects requires effects object, clear=true, or supported effect fields (dropShadow/stroke)");
+  }
+
+  return descriptor;
+}
+
+async function runSetLayerEffects(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const effectsDescriptor = buildLayerEffectsDescriptor(op);
+  await selectLayer(layer);
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "set",
+        _target: [
+          {
+            _ref: "property",
+            _property: "layerEffects"
+          },
+          {
+            _ref: "layer",
+            _enum: "ordinal",
+            _value: "targetEnum"
+          }
+        ],
+        to: effectsDescriptor,
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "setLayerEffects" }
+  );
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Updated layer effects on '${layer.name}'`
+  };
+}
+
 async function runCreateAdjustmentLayer(op, ctx) {
   const adjustment = String(op.adjustment || op.type || "levels").toLowerCase();
   const makeObj = adjustment === "curves" ? "curves" : adjustment === "huesaturation" || adjustment === "hue-sat" ? "hueSaturation" : "levels";
@@ -3994,6 +4274,48 @@ async function runApplyGaussianBlur(op, ctx) {
   };
 }
 
+async function runApplyAddNoise(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const amount = toFiniteNumber(op.amount ?? op.by, undefined);
+  if (!Number.isFinite(amount)) {
+    throw new Error("applyAddNoise requires amount");
+  }
+
+  const distribution = normalizeEnumLookup(constants?.NoiseDistribution, op.distribution || "uniform", op.distribution || "uniform");
+  const monochromatic = Boolean(op.monochromatic ?? op.monochrome ?? false);
+
+  await selectLayer(layer);
+
+  if (typeof layer.applyAddNoise === "function") {
+    await layer.applyAddNoise(amount, distribution, monochromatic);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "addNoise",
+          amount: unitPercent(amount),
+          distribution: {
+            _enum: "distribution",
+            _value: String(distribution || "uniform")
+          },
+          monochromatic,
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applyAddNoise" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied Add Noise amount=${amount} to '${layer.name}'`
+  };
+}
+
 async function runApplyUnsharpMask(op, ctx) {
   const layer = requireLayerTarget(op, ctx.refs);
   const amount = toFiniteNumber(op.amount, undefined);
@@ -4047,6 +4369,9 @@ async function runApplyFilter(op, ctx) {
   if (filter === "gaussianblur" || filter === "gaussian") {
     return runApplyGaussianBlur(op, ctx);
   }
+  if (filter === "addnoise" || filter === "noise" || filter === "grain") {
+    return runApplyAddNoise(op, ctx);
+  }
   if (filter === "unsharpmask" || filter === "unsharp") {
     return runApplyUnsharpMask(op, ctx);
   }
@@ -4064,6 +4389,8 @@ async function runCreateTextLayer(op, ctx) {
   const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
   const text = op.text !== undefined ? normalizeTextContents(op.text) : op.contents !== undefined ? normalizeTextContents(op.contents) : undefined;
   const requestedFont = String(op.fontName || op.font || "").trim();
+  const requestedTextColor = op.textColor ?? op.color;
+  const requestedAlignment = op.alignment ?? op.align ?? op.justification;
   if (text === undefined) {
     throw new Error("createTextLayer requires text or contents");
   }
@@ -4131,6 +4458,14 @@ async function runCreateTextLayer(op, ctx) {
     } catch {
       // Font assignment can fail on unavailable family/style combinations.
     }
+  }
+
+  if (requestedTextColor !== undefined && layer?.textItem) {
+    applyTextColorToTextItem(layer.textItem, requestedTextColor);
+  }
+
+  if (requestedAlignment !== undefined && layer?.textItem) {
+    applyTextAlignmentToTextItem(layer.textItem, requestedAlignment);
   }
 
   const maxWidth = toFiniteNumber(op.maxWidth, undefined);
@@ -4259,6 +4594,16 @@ async function runSetTextStyle(op, ctx) {
     applied += 1;
   }
 
+  const requestedTextColor = op.textColor ?? op.color;
+  if (requestedTextColor !== undefined && applyTextColorToTextItem(textItem, requestedTextColor)) {
+    applied += 1;
+  }
+
+  const requestedAlignment = op.alignment ?? op.align ?? op.justification;
+  if (requestedAlignment !== undefined && applyTextAlignmentToTextItem(textItem, requestedAlignment)) {
+    applied += 1;
+  }
+
   const maxWidth = toFiniteNumber(op.maxWidth, undefined);
   const maxHeight = toFiniteNumber(op.maxHeight, undefined);
   const hasFitConstraints = Number.isFinite(maxWidth) || Number.isFinite(maxHeight);
@@ -4286,7 +4631,7 @@ async function runSetTextStyle(op, ctx) {
   }
 
   if (applied === 0) {
-    throw new Error("setTextStyle did not find supported style fields (text/fontSize/fontName/font/position/maxWidth/maxHeight/avoidOverlapWith)");
+    throw new Error("setTextStyle did not find supported style fields (text/fontSize/fontName/font/position/textColor/color/alignment/maxWidth/maxHeight/avoidOverlapWith)");
   }
 
   return {
@@ -4312,7 +4657,7 @@ function parseHexColor(value) {
   };
 }
 
-function normalizeRgbColor(rawColor) {
+function parseRgbColor(rawColor) {
   if (rawColor && typeof rawColor === "object") {
     const r = toFiniteNumber(rawColor.r ?? rawColor.red, undefined);
     const g = toFiniteNumber(rawColor.g ?? rawColor.green, undefined);
@@ -4334,6 +4679,15 @@ function normalizeRgbColor(rawColor) {
     }
   }
 
+  return null;
+}
+
+function normalizeRgbColor(rawColor) {
+  const parsed = parseRgbColor(rawColor);
+  if (parsed) {
+    return parsed;
+  }
+
   return {
     r: 255,
     g: 255,
@@ -4341,10 +4695,267 @@ function normalizeRgbColor(rawColor) {
   };
 }
 
+function toRgbColorDescriptor(rawColor) {
+  const color = normalizeRgbColor(rawColor);
+  return {
+    _obj: "RGBColor",
+    red: color.r,
+    green: color.g,
+    blue: color.b
+  };
+}
+
+function toSolidColor(rawColor) {
+  const parsed = parseRgbColor(rawColor);
+  if (!parsed) {
+    return null;
+  }
+
+  const assignRgb = (solidColor) => {
+    if (!solidColor?.rgb) {
+      return null;
+    }
+    solidColor.rgb.red = parsed.r;
+    solidColor.rgb.green = parsed.g;
+    solidColor.rgb.blue = parsed.b;
+    return solidColor;
+  };
+
+  const constructorCandidates = [photoshop?.SolidColor, app?.SolidColor, photoshop?.app?.SolidColor];
+  for (const candidate of constructorCandidates) {
+    if (typeof candidate !== "function") {
+      continue;
+    }
+    try {
+      const instantiated = assignRgb(new candidate());
+      if (instantiated) {
+        return instantiated;
+      }
+    } catch {
+      // Continue trying other constructor candidates.
+    }
+  }
+
+  const sampledColorCandidates = [app?.foregroundColor, app?.backgroundColor];
+  for (const sample of sampledColorCandidates) {
+    try {
+      const hydrated = assignRgb(sample);
+      if (hydrated) {
+        return hydrated;
+      }
+    } catch {
+      // Continue trying fallbacks.
+    }
+  }
+
+  return null;
+}
+
+function applyTextColorToTextItem(textItem, rawColor) {
+  const solidColor = toSolidColor(rawColor);
+  if (!solidColor) {
+    throw new Error("textColor/color must be a hex string like '#RRGGBB' or an RGB object");
+  }
+
+  let applied = false;
+  let lastError = null;
+
+  try {
+    if (textItem.characterStyle && "color" in textItem.characterStyle) {
+      textItem.characterStyle.color = solidColor;
+      applied = true;
+    }
+  } catch (error) {
+    lastError = error;
+  }
+
+  if (!applied) {
+    try {
+      if ("color" in textItem) {
+        textItem.color = solidColor;
+        applied = true;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!applied) {
+    try {
+      if ("textColor" in textItem) {
+        textItem.textColor = solidColor;
+        applied = true;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!applied && lastError) {
+    throw new Error(`Failed to apply text color: ${sanitizeError(lastError).message}`);
+  }
+
+  return applied;
+}
+
+function applyTextAlignmentToTextItem(textItem, rawAlignment) {
+  const justification = resolveTextJustification(rawAlignment);
+  if (!justification) {
+    throw new Error("alignment/align/justification must be a non-empty alignment value");
+  }
+
+  let applied = false;
+  let lastError = null;
+
+  try {
+    if (textItem.paragraphStyle && typeof textItem.paragraphStyle === "object") {
+      if ("justification" in textItem.paragraphStyle) {
+        textItem.paragraphStyle.justification = justification;
+      } else {
+        textItem.paragraphStyle = {
+          ...textItem.paragraphStyle,
+          justification
+        };
+      }
+      applied = true;
+    }
+  } catch (error) {
+    lastError = error;
+  }
+
+  if (!applied) {
+    try {
+      if ("justification" in textItem) {
+        textItem.justification = justification;
+        applied = true;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!applied && lastError) {
+    throw new Error(`Failed to apply text alignment: ${sanitizeError(lastError).message}`);
+  }
+
+  return applied;
+}
+
 function unitPx(value) {
   return {
     _unit: "pixelsUnit",
     _value: Number(value)
+  };
+}
+
+function unitPercent(value) {
+  return {
+    _unit: "percentUnit",
+    _value: Number(value)
+  };
+}
+
+function unitAngle(value) {
+  return {
+    _unit: "angleUnit",
+    _value: Number(value)
+  };
+}
+
+function normalizeGradientType(rawType) {
+  const token = String(rawType || "linear").trim().toLowerCase();
+  if (token === "radial") return "radial";
+  if (token === "angle") return "angle";
+  if (token === "reflected" || token === "reflect") return "reflected";
+  if (token === "diamond") return "diamond";
+  return "linear";
+}
+
+function buildShapeDescriptor(bounds, shapeType, cornerRadius) {
+  const normalizedShape = String(shapeType || "rectangle").trim().toLowerCase();
+  const isEllipse = normalizedShape === "ellipse" || normalizedShape === "circle";
+  const roundedRadius = toFiniteNumber(cornerRadius, undefined);
+  const shapeDescriptor = {
+    _obj: isEllipse ? "ellipse" : "rectangle",
+    top: unitPx(bounds.top),
+    left: unitPx(bounds.left),
+    bottom: unitPx(bounds.bottom),
+    right: unitPx(bounds.right)
+  };
+
+  if (!isEllipse && Number.isFinite(roundedRadius) && roundedRadius > 0) {
+    const maxRadius = Math.min(Math.abs(Number(bounds.right) - Number(bounds.left)), Math.abs(Number(bounds.bottom) - Number(bounds.top))) / 2;
+    const safeRadius = Math.max(0, Math.min(Number(roundedRadius), maxRadius));
+    shapeDescriptor.topLeft = unitPx(safeRadius);
+    shapeDescriptor.topRight = unitPx(safeRadius);
+    shapeDescriptor.bottomLeft = unitPx(safeRadius);
+    shapeDescriptor.bottomRight = unitPx(safeRadius);
+  }
+
+  return shapeDescriptor;
+}
+
+function buildGradientLayerDescriptor(op) {
+  const gradientSpec = op.gradient && typeof op.gradient === "object" ? op.gradient : {};
+  const fromColor = normalizeRgbColor(gradientSpec.from ?? gradientSpec.start ?? op.gradientFrom ?? op.fromColor ?? "#ffffff");
+  const toColor = normalizeRgbColor(gradientSpec.to ?? gradientSpec.end ?? op.gradientTo ?? op.toColor ?? "#000000");
+  const angle = toFiniteNumber(gradientSpec.angle ?? op.gradientAngle ?? 90, 90);
+  const scale = toFiniteNumber(gradientSpec.scale ?? op.gradientScale ?? 100, 100);
+  const gradientType = normalizeGradientType(gradientSpec.type ?? op.gradientType ?? "linear");
+
+  return {
+    _obj: "gradientLayer",
+    type: {
+      _enum: "gradientType",
+      _value: gradientType
+    },
+    angle: unitAngle(angle),
+    scale: unitPercent(scale),
+    gradient: {
+      _obj: "gradientClassEvent",
+      name: String(gradientSpec.name || "PSAgent Gradient"),
+      gradientForm: {
+        _enum: "gradientForm",
+        _value: "customStops"
+      },
+      interfaceIconFrameDimmed: 4096,
+      colors: [
+        {
+          _obj: "colorStop",
+          color: toRgbColorDescriptor(fromColor),
+          type: {
+            _enum: "colorStopType",
+            _value: "userStop"
+          },
+          location: 0,
+          midpoint: 50
+        },
+        {
+          _obj: "colorStop",
+          color: toRgbColorDescriptor(toColor),
+          type: {
+            _enum: "colorStopType",
+            _value: "userStop"
+          },
+          location: 4096,
+          midpoint: 50
+        }
+      ],
+      transparency: [
+        {
+          _obj: "transferSpec",
+          opacity: unitPercent(100),
+          location: 0,
+          midpoint: 50
+        },
+        {
+          _obj: "transferSpec",
+          opacity: unitPercent(100),
+          location: 4096,
+          midpoint: 50
+        }
+      ]
+    }
   };
 }
 
@@ -4360,9 +4971,18 @@ async function runCreateShapeLayer(op, ctx) {
     throw new Error("createShapeLayer requires bounds or x/y/width/height");
   }
 
-  const color = normalizeRgbColor(op.fill || op.color || "#FFFFFF");
   const shapeType = String(op.shape || op.shapeType || "rectangle").toLowerCase();
-  const shapeObj = shapeType === "ellipse" || shapeType === "circle" ? "ellipse" : "rectangle";
+  const cornerRadius = toFiniteNumber(op.cornerRadius ?? op.radius, undefined);
+  const wantsGradientFill =
+    String(op.fillType || "").trim().toLowerCase() === "gradient" ||
+    (op.gradient && typeof op.gradient === "object");
+  const contentType = wantsGradientFill
+    ? buildGradientLayerDescriptor(op)
+    : {
+        _obj: "solidColorLayer",
+        color: toRgbColorDescriptor(op.fill || op.color || "#FFFFFF")
+      };
+  const shapeDescriptor = buildShapeDescriptor(bounds, shapeType, cornerRadius);
 
   await runBatchPlay(
     [
@@ -4375,22 +4995,8 @@ async function runCreateShapeLayer(op, ctx) {
         ],
         using: {
           _obj: "contentLayer",
-          type: {
-            _obj: "solidColorLayer",
-            color: {
-              _obj: "RGBColor",
-              red: color.r,
-              grain: color.g,
-              blue: color.b
-            }
-          },
-          shape: {
-            _obj: shapeObj,
-            top: unitPx(bounds.top),
-            left: unitPx(bounds.left),
-            bottom: unitPx(bounds.bottom),
-            right: unitPx(bounds.right)
-          }
+          type: contentType,
+          shape: shapeDescriptor
         },
         _options: {
           dialogOptions: "dontDisplay"
@@ -4409,7 +5015,7 @@ async function runCreateShapeLayer(op, ctx) {
   return {
     layer: serializeLayer(layer),
     refValue: layer ? buildLayerRefValue(layer) : undefined,
-    detail: `Created ${shapeObj} shape layer`
+    detail: `Created ${wantsGradientFill ? "gradient " : ""}${shapeType === "ellipse" || shapeType === "circle" ? "ellipse" : cornerRadius ? "rounded rectangle" : "rectangle"} shape layer`
   };
 }
 
@@ -4681,10 +5287,14 @@ function registerOperations() {
   registerOp(["deleteLayerMask", "layerMask.delete"], runDeleteLayerMask);
   registerOp(["removeLayerMask", "layerMask.remove"], runDeleteLayerMask);
   registerOp(["applyLayerMask", "layerMask.apply"], runApplyLayerMask);
+  registerOp(["createClippingMask", "layerMask.clip"], runCreateClippingMask);
+  registerOp(["releaseClippingMask", "layerMask.unclip"], runReleaseClippingMask);
+  registerOp(["setLayerEffects", "layer.effects"], runSetLayerEffects);
 
   registerOp(["createAdjustmentLayer", "adjustment.create"], runCreateAdjustmentLayer);
   registerOp(["applyFilter", "filter.apply"], runApplyFilter);
   registerOp(["applyGaussianBlur", "filter.gaussianBlur"], runApplyGaussianBlur);
+  registerOp(["applyAddNoise", "filter.addNoise", "applyNoise", "filter.noise"], runApplyAddNoise);
   registerOp(["applyUnsharpMask", "filter.unsharpMask"], runApplyUnsharpMask);
   registerOp(["applySharpen", "filter.sharpen"], runApplySharpen);
   registerOp(["applyBlur", "filter.blur"], runApplyBlur);
@@ -5036,10 +5646,25 @@ function validateResolvedOperation(opName, op, refs) {
 
   if (
     opName === "setTextStyle" &&
-    !opHasAnyField(op, ["text", "contents", "fontSize", "fontName", "font", "position", "maxWidth", "maxHeight", "avoidOverlapWith"])
+    !opHasAnyField(op, [
+      "text",
+      "contents",
+      "fontSize",
+      "fontName",
+      "font",
+      "position",
+      "textColor",
+      "color",
+      "alignment",
+      "align",
+      "justification",
+      "maxWidth",
+      "maxHeight",
+      "avoidOverlapWith"
+    ])
   ) {
     throw new Error(
-      "setTextStyle requires at least one supported field: text/contents/fontSize/fontName/font/position/maxWidth/maxHeight/avoidOverlapWith"
+      "setTextStyle requires at least one supported field: text/contents/fontSize/fontName/font/position/textColor/color/alignment/maxWidth/maxHeight/avoidOverlapWith"
     );
   }
 
@@ -5074,6 +5699,14 @@ function validateResolvedOperation(opName, op, refs) {
 
   if (opName === "applyFilter" && !opHasAnyField(op, ["filter", "kind"])) {
     throw new Error("applyFilter requires filter");
+  }
+
+  if (opName === "applyAddNoise" && !opHasAnyField(op, ["amount", "by"])) {
+    throw new Error("applyAddNoise requires amount");
+  }
+
+  if (opName === "setLayerEffects" && !opHasAnyField(op, ["effects", "dropShadow", "stroke", "clear"])) {
+    throw new Error("setLayerEffects requires effects, dropShadow/stroke, or clear=true");
   }
 
   if ((opName === "selectRectangle" || opName === "selectEllipse") && (!op?.bounds || typeof op.bounds !== "object")) {

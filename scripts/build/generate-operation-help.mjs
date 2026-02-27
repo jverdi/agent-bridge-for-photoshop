@@ -79,6 +79,7 @@ function parseOperationEntries(source) {
     const aliases = parseBacktickTokens(extractLineValue(section, "- Aliases: "));
     const required = extractLineValue(section, "- Required: ") ?? "None";
     const supportedArgs = extractLineValue(section, "- Supported args: ") ?? "No op-specific args";
+    const notes = extractLineValue(section, "- Notes: ") ?? "";
     const exampleMatch = section.match(/```json\s*([\s\S]*?)```/u);
 
     entries.push({
@@ -86,6 +87,7 @@ function parseOperationEntries(source) {
       aliases,
       required,
       supportedArgs,
+      notes,
       example: exampleMatch ? exampleMatch[1].trim() : ""
     });
   }

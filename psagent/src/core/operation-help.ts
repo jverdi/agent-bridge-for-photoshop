@@ -10,6 +10,7 @@ export interface OperationHelpEntry {
   aliases: string[];
   required: string;
   supportedArgs: string;
+  notes: string;
   example: string;
 }
 
@@ -36,6 +37,7 @@ export function loadOperationHelpDocs(): OperationHelpDocs {
     aliases: [...entry.aliases],
     required: entry.required,
     supportedArgs: entry.supportedArgs,
+    notes: entry.notes ?? "",
     example: entry.example
   }));
   const byName = new Map(entries.map((entry) => [entry.name, entry]));

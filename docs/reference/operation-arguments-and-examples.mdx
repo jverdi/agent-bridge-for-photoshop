@@ -9,7 +9,9 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - `target` can be omitted for layer-targeted ops if an active layer is selected; otherwise pass one of: layer name (`"Hero"`), layer id (`"123"`), or object (`{ "layerName": "Hero" }` / `{ "layerId": "123" }`).
 - `docRef`/`target` for document ops defaults to the active document when omitted.
+- Photoshop can change the active document between separate CLI invocations. Put dependent operations in a single `psagent op apply` envelope and set `doc.ref` explicitly.
 - Ref assignment keys supported on any op: `ref`, `refId`, `as`, `outputRef`, `storeAs`, `idRef`.
+- Ref keys are accepted on all operations; refs are most useful on ops that return a document/layer result (`createDocument`, `createLayer`, `createTextLayer`, `placeAsset`, etc.).
 - Alias names listed below resolve to the same canonical op. Prefer canonical names in new prompts.
 - `format` for export/save ops accepts common image/doc formats (`png`, `jpg`, `psd`), resolved by Photoshop save/export APIs.
 - All examples are single-op snippets intended for the `ops` array.
@@ -21,6 +23,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `doc.create`, `document.create`, `newDocument`
 - Required: None
 - Supported args: `depth`, `fill`, `height`, `mode`, `name`, `preset`, `profile`, `resolution`, `width`
+- Notes: `mode` accepts Photoshop document mode enums (`rgb`, `cmyk`, `lab`, `grayscale`, `bitmap`, `indexedColor`, `multichannel`, `duotone`). `fill` accepts enum values (`white`, `black`, `transparent`, `backgroundColor`). Aliases like `rgbColor` are normalized for compatibility. Hex color strings are not valid `fill` values.
 
 ```json
 {
@@ -29,7 +32,8 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "width": 1080,
   "height": 1080,
   "resolution": 72,
-  "mode": "rgbColor"
+  "mode": "rgb",
+  "fill": "white"
 }
 ```
 
@@ -77,6 +81,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `doc.saveAs`, `document.saveAs`
 - Required: `output`
 - Supported args: `docRef`, `target`, `output`, `format`, `quality`, `asCopy`, `options`
+- Notes: Use `output` for the destination path. `path` is not a supported key for this op.
 
 ```json
 {
@@ -475,6 +480,34 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `setLayerEffects`
+
+- Aliases: `layer.effects`
+- Required: `target (or active layer)` plus one of `effects`, `dropShadow`, `stroke`, or `clear: true`
+- Supported args: `clear`, `dropShadow`, `effects`, `scale`, `stroke`
+
+```json
+{
+  "op": "setLayerEffects",
+  "target": {
+    "layerName": "Headline"
+  },
+  "dropShadow": {
+    "color": "#000000",
+    "opacity": 45,
+    "angle": 120,
+    "distance": 10,
+    "size": 18
+  },
+  "stroke": {
+    "color": "#ffffff",
+    "size": 2,
+    "position": "outside",
+    "opacity": 100
+  }
+}
+```
+
 ### `bringLayerToFront`
 
 - Aliases: `layer.bringToFront`
@@ -577,6 +610,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `layer.transform`
 - Required: `target (or active layer)`
 - Supported args: `angle`, `angleH`, `angleV`, `axis`, `by`, `flip`, `height`, `horizontal`, `percent`, `rotate`, `scale`, `scaleX`, `scaleY`, `skewX`, `skewY`, `translate`, `vertical`, `width`, `x`, `y`
+- Notes: For translation via `transformLayer`, pass top-level `x`/`y` (or `horizontal`/`vertical`). `translateLayer` uses the same movement fields.
 
 ```json
 {
@@ -1089,6 +1123,36 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `createClippingMask`
+
+- Aliases: `layerMask.clip`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "createClippingMask",
+  "target": {
+    "layerName": "Placed Photo"
+  }
+}
+```
+
+### `releaseClippingMask`
+
+- Aliases: `layerMask.unclip`
+- Required: `target (or active layer)`
+- Supported args: No op-specific args
+
+```json
+{
+  "op": "releaseClippingMask",
+  "target": {
+    "layerName": "Placed Photo"
+  }
+}
+```
+
 ## Adjustments and filters
 
 ### `createAdjustmentLayer`
@@ -1096,15 +1160,12 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `adjustment.create`
 - Required: None (`levels` default when omitted)
 - Supported args: `adjustment`, `name`, `type`
+- Notes: `type`/`adjustment` currently select the adjustment kind; detailed numeric adjustment payload maps are not yet interpreted by the bridge.
 
 ```json
 {
   "op": "createAdjustmentLayer",
-  "type": "brightnessContrast",
-  "adjustment": {
-    "brightness": 10,
-    "contrast": 5
-  },
+  "type": "levels",
   "name": "Grade"
 }
 ```
@@ -1139,6 +1200,24 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
     "layerName": "Hero"
   },
   "radius": 3
+}
+```
+
+### `applyAddNoise`
+
+- Aliases: `filter.addNoise`, `applyNoise`, `filter.noise`
+- Required: `target (or active layer)`, `amount`
+- Supported args: `amount`, `distribution`, `monochromatic`
+
+```json
+{
+  "op": "applyAddNoise",
+  "target": {
+    "layerName": "Texture"
+  },
+  "amount": 8,
+  "distribution": "uniform",
+  "monochromatic": true
 }
 ```
 
@@ -1196,7 +1275,8 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `text.create`
 - Required: `text (or contents)`
-- Supported args: `avoidOverlapWith`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`
+- Supported args: `alignment`, `align`, `avoidOverlapWith`, `color`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`, `textColor`
+- Notes: `position.y` is the text baseline, not the top of glyph bounds. For large display text, place the baseline lower than the desired visual top. `createTextLayer` already accepts style/fitting args; use `setTextStyle` for post-create updates.
 
 ```json
 {
@@ -1204,10 +1284,13 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "name": "Headline",
   "text": "Summer Launch",
   "fontSize": 72,
+  "textColor": "#ffffff",
+  "alignment": "center",
   "position": {
-    "x": 96,
+    "x": 0,
     "y": 220
-  }
+  },
+  "maxWidth": 1080
 }
 ```
 
@@ -1231,7 +1314,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `text.style`
 - Required: `target (or active layer)`, `at least one style/content field`
-- Supported args: `avoidOverlapWith`, `contents`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `maxHeight`, `maxWidth`, `minFontSize`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`
+- Supported args: `alignment`, `align`, `avoidOverlapWith`, `color`, `contents`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`, `textColor`
 
 ```json
 {
@@ -1240,6 +1323,8 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
     "layerName": "Headline"
   },
   "font": "Avenir Next",
+  "textColor": "#f8fafc",
+  "alignment": "center",
   "fontSize": 64,
   "maxWidth": 860,
   "overflow": "resize"
@@ -1250,7 +1335,7 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `shape.create`
 - Required: `bounds or x/y/width/height`
-- Supported args: `bounds`, `color`, `fill`, `height`, `name`, `shape`, `shapeType`, `width`, `x`, `y`
+- Supported args: `bounds`, `color`, `cornerRadius`, `fill`, `fillType`, `gradient`, `gradientAngle`, `gradientFrom`, `gradientScale`, `gradientTo`, `gradientType`, `height`, `name`, `radius`, `shape`, `shapeType`, `width`, `x`, `y`
 
 ```json
 {
@@ -1261,7 +1346,13 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "y": 980,
   "width": 320,
   "height": 92,
-  "fill": "#2563eb"
+  "fillType": "gradient",
+  "cornerRadius": 46,
+  "gradient": {
+    "from": "#22c55e",
+    "to": "#15803d",
+    "angle": 90
+  }
 }
 ```
 
@@ -1333,6 +1424,51 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 - Aliases: `action.batchPlay`
 - Required: `commands[] or command/descriptor`
 - Supported args: `allowUnavailable`, `command`, `commands`, `descriptor`, `options`
+- Notes: `textStyleRange[*].textStyle` replaces style objects rather than patching them. Include every style field you need to preserve (font family/style, size, color, etc.), or use first-class text ops (`createTextLayer` / `setTextStyle`) when possible.
+
+```json
+{
+  "op": "batchPlay",
+  "commands": [
+    {
+      "_obj": "set",
+      "_target": [
+        {
+          "_ref": "textLayer",
+          "_name": "Headline"
+        }
+      ],
+      "to": {
+        "_obj": "textLayer",
+        "textStyleRange": [
+          {
+            "_obj": "textStyleRange",
+            "from": 0,
+            "to": 8,
+            "textStyle": {
+              "_obj": "textStyle",
+              "fontPostScriptName": "Impact",
+              "fontName": "Impact",
+              "fontStyleName": "Regular",
+              "size": {
+                "_obj": "unitDouble",
+                "_unit": "pointsUnit",
+                "_value": 200
+              },
+              "color": {
+                "_obj": "RGBColor",
+                "red": 255,
+                "green": 255,
+                "blue": 255
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
 
 ```json
 {

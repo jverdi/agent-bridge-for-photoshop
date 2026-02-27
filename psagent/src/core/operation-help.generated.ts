@@ -38,6 +38,7 @@ export const GENERATED_OPERATION_CATALOG = [
       "setLayerOpacity",
       "setBlendMode",
       "setLayerProps",
+      "setLayerEffects",
       "bringLayerToFront",
       "sendLayerToBack",
       "mergeLayer",
@@ -88,7 +89,9 @@ export const GENERATED_OPERATION_CATALOG = [
       "modifySelection",
       "createLayerMask",
       "deleteLayerMask",
-      "applyLayerMask"
+      "applyLayerMask",
+      "createClippingMask",
+      "releaseClippingMask"
     ]
   },
   {
@@ -106,6 +109,7 @@ export const GENERATED_OPERATION_CATALOG = [
       "createAdjustmentLayer",
       "applyFilter",
       "applyGaussianBlur",
+      "applyAddNoise",
       "applyUnsharpMask",
       "applySharpen",
       "applyBlur"
@@ -133,7 +137,8 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`depth`, `fill`, `height`, `mode`, `name`, `preset`, `profile`, `resolution`, `width`",
-    "example": "{\n  \"op\": \"createDocument\",\n  \"name\": \"New Doc\",\n  \"width\": 1080,\n  \"height\": 1080,\n  \"resolution\": 72,\n  \"mode\": \"rgbColor\"\n}"
+    "notes": "`mode` accepts Photoshop document mode enums (`rgb`, `cmyk`, `lab`, `grayscale`, `bitmap`, `indexedColor`, `multichannel`, `duotone`). `fill` accepts enum values (`white`, `black`, `transparent`, `backgroundColor`). Aliases like `rgbColor` are normalized for compatibility. Hex color strings are not valid `fill` values.",
+    "example": "{\n  \"op\": \"createDocument\",\n  \"name\": \"New Doc\",\n  \"width\": 1080,\n  \"height\": 1080,\n  \"resolution\": 72,\n  \"mode\": \"rgb\",\n  \"fill\": \"white\"\n}"
   },
   {
     "name": "openDocument",
@@ -143,6 +148,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`input (or path/source)`",
     "supportedArgs": "`input`, `path`, `source`",
+    "notes": "",
     "example": "{\n  \"op\": \"openDocument\",\n  \"input\": \"./assets/source.psd\"\n}"
   },
   {
@@ -153,6 +159,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`docRef`, `mergeLayersOnly`, `name`, `target`",
+    "notes": "",
     "example": "{\n  \"op\": \"duplicateDocument\",\n  \"name\": \"Variant A\"\n}"
   },
   {
@@ -163,6 +170,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`allowDialog`, `asCopy`, `docRef`, `options`, `output`, `quality`, `target`",
+    "notes": "",
     "example": "{\n  \"op\": \"saveDocument\",\n  \"output\": \"./tmp/current.psd\"\n}"
   },
   {
@@ -173,6 +181,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`output`",
     "supportedArgs": "`docRef`, `target`, `output`, `format`, `quality`, `asCopy`, `options`",
+    "notes": "Use `output` for the destination path. `path` is not a supported key for this op.",
     "example": "{\n  \"op\": \"saveDocumentAs\",\n  \"output\": \"./tmp/output.psd\"\n}"
   },
   {
@@ -183,6 +192,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`docRef`, `mode`, `output`, `save`, `saveChanges`, `saveOption`, `target`",
+    "notes": "",
     "example": "{\n  \"op\": \"closeDocument\",\n  \"save\": false\n}"
   },
   {
@@ -192,6 +202,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`width` and/or `height`",
     "supportedArgs": "`docRef`, `height`, `resolution`, `target`, `width`",
+    "notes": "",
     "example": "{\n  \"op\": \"resizeImage\",\n  \"width\": 1920,\n  \"height\": 1080,\n  \"resolution\": 72\n}"
   },
   {
@@ -201,6 +212,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`width`, `height`",
     "supportedArgs": "`anchor`, `docRef`, `height`, `target`, `width`",
+    "notes": "",
     "example": "{\n  \"op\": \"resizeCanvas\",\n  \"width\": 1200,\n  \"height\": 1200,\n  \"anchor\": \"middleCenter\"\n}"
   },
   {
@@ -210,6 +222,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`bounds {left, top, right, bottom}` (or top-level `left/top/right/bottom`)",
     "supportedArgs": "`angle`, `bounds`, `docRef`, `height`, `target`, `width`",
+    "notes": "",
     "example": "{\n  \"op\": \"cropDocument\",\n  \"bounds\": {\n    \"left\": 0,\n    \"top\": 0,\n    \"right\": 1080,\n    \"bottom\": 1920\n  }\n}"
   },
   {
@@ -219,6 +232,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`bottom`, `docRef`, `left`, `right`, `target`, `top`, `trimType`",
+    "notes": "",
     "example": "{\n  \"op\": \"trimDocument\",\n  \"trimType\": \"transparent\",\n  \"top\": true,\n  \"left\": true,\n  \"bottom\": true,\n  \"right\": true\n}"
   },
   {
@@ -228,6 +242,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`angle`",
     "supportedArgs": "`anchor`, `angle`, `docRef`, `options`, `target`",
+    "notes": "",
     "example": "{\n  \"op\": \"rotateDocument\",\n  \"angle\": 90\n}"
   },
   {
@@ -238,6 +253,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`docRef`, `target`",
+    "notes": "",
     "example": "{\n  \"op\": \"flattenDocument\"\n}"
   },
   {
@@ -248,6 +264,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`docRef`, `target`",
+    "notes": "",
     "example": "{\n  \"op\": \"mergeVisible\"\n}"
   },
   {
@@ -257,6 +274,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`",
+    "notes": "",
     "example": "{\n  \"op\": \"createLayer\",\n  \"name\": \"Foreground\"\n}"
   },
   {
@@ -266,6 +284,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`blendMode`, `docRef`, `fillNeutral`, `kind`, `name`, `opacity`",
+    "notes": "",
     "example": "{\n  \"op\": \"createPixelLayer\",\n  \"name\": \"Paint\"\n}"
   },
   {
@@ -276,6 +295,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`blendMode`, `docRef`, `fromLayers`, `name`, `opacity`",
+    "notes": "",
     "example": "{\n  \"op\": \"createGroup\",\n  \"name\": \"Hero Group\"\n}"
   },
   {
@@ -285,6 +305,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`targets[]`",
     "supportedArgs": "`docRef`, `name`, `targets`",
+    "notes": "",
     "example": "{\n  \"op\": \"groupLayers\",\n  \"targets\": [\n    {\n      \"layerName\": \"Title\"\n    },\n    {\n      \"layerName\": \"CTA\"\n    }\n  ],\n  \"name\": \"Header Group\"\n}"
   },
   {
@@ -294,6 +315,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"ungroupLayer\",\n  \"target\": {\n    \"layerName\": \"Header Group\"\n  }\n}"
   },
   {
@@ -303,6 +325,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"deleteLayer\",\n  \"target\": {\n    \"layerName\": \"Scratch\"\n  }\n}"
   },
   {
@@ -312,6 +335,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `name (or newName)`",
     "supportedArgs": "`name`",
+    "notes": "",
     "example": "{\n  \"op\": \"renameLayer\",\n  \"target\": {\n    \"layerName\": \"Layer 1\"\n  },\n  \"name\": \"Hero\"\n}"
   },
   {
@@ -321,6 +345,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`insertionLocation`, `name`, `placement`, `relativeTo`",
+    "notes": "",
     "example": "{\n  \"op\": \"duplicateLayer\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"name\": \"Hero Copy\"\n}"
   },
   {
@@ -330,6 +355,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"selectLayer\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  }\n}"
   },
   {
@@ -339,6 +365,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`targets[]`",
     "supportedArgs": "`targets`",
+    "notes": "",
     "example": "{\n  \"op\": \"selectLayers\",\n  \"targets\": [\n    {\n      \"layerName\": \"Hero\"\n    },\n    {\n      \"layerName\": \"CTA\"\n    }\n  ],\n  \"mode\": \"set\"\n}"
   },
   {
@@ -350,6 +377,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `one of: by{x,y}, relativeTo+placement, to(front/back), or index/at`",
     "supportedArgs": "`at`, `by`, `index`, `insertLocation`, `placement`, `relativeTo`, `to`",
+    "notes": "",
     "example": "{\n  \"op\": \"moveLayer\",\n  \"target\": {\n    \"layerName\": \"CTA\"\n  },\n  \"relativeTo\": {\n    \"layerName\": \"Hero\"\n  },\n  \"placement\": \"placeAfter\"\n}"
   },
   {
@@ -359,6 +387,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `visible`",
     "supportedArgs": "`visible`",
+    "notes": "",
     "example": "{\n  \"op\": \"setLayerVisibility\",\n  \"target\": {\n    \"layerName\": \"CTA\"\n  },\n  \"visible\": true\n}"
   },
   {
@@ -368,6 +397,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"showLayer\",\n  \"target\": {\n    \"layerName\": \"CTA\"\n  }\n}"
   },
   {
@@ -377,6 +407,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"hideLayer\",\n  \"target\": {\n    \"layerName\": \"CTA\"\n  }\n}"
   },
   {
@@ -386,6 +417,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `opacity`",
     "supportedArgs": "`opacity`",
+    "notes": "",
     "example": "{\n  \"op\": \"setLayerOpacity\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"opacity\": 80\n}"
   },
   {
@@ -395,6 +427,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `blendMode`",
     "supportedArgs": "`blendMode`",
+    "notes": "",
     "example": "{\n  \"op\": \"setBlendMode\",\n  \"target\": {\n    \"layerName\": \"Texture\"\n  },\n  \"blendMode\": \"multiply\"\n}"
   },
   {
@@ -404,7 +437,18 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`blendMode`, `locked`, `opacity`, `visible`",
+    "notes": "",
     "example": "{\n  \"op\": \"setLayerProps\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"visible\": true,\n  \"opacity\": 90,\n  \"blendMode\": \"normal\"\n}"
+  },
+  {
+    "name": "setLayerEffects",
+    "aliases": [
+      "layer.effects"
+    ],
+    "required": "`target (or active layer)` plus one of `effects`, `dropShadow`, `stroke`, or `clear: true`",
+    "supportedArgs": "`clear`, `dropShadow`, `effects`, `scale`, `stroke`",
+    "notes": "",
+    "example": "{\n  \"op\": \"setLayerEffects\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"dropShadow\": {\n    \"color\": \"#000000\",\n    \"opacity\": 45,\n    \"angle\": 120,\n    \"distance\": 10,\n    \"size\": 18\n  },\n  \"stroke\": {\n    \"color\": \"#ffffff\",\n    \"size\": 2,\n    \"position\": \"outside\",\n    \"opacity\": 100\n  }\n}"
   },
   {
     "name": "bringLayerToFront",
@@ -413,6 +457,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"bringLayerToFront\",\n  \"target\": {\n    \"layerName\": \"CTA\"\n  }\n}"
   },
   {
@@ -422,6 +467,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"sendLayerToBack\",\n  \"target\": {\n    \"layerName\": \"Background\"\n  }\n}"
   },
   {
@@ -432,6 +478,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`name`, `targets`",
+    "notes": "",
     "example": "{\n  \"op\": \"mergeLayer\",\n  \"target\": {\n    \"layerName\": \"Overlay\"\n  }\n}"
   },
   {
@@ -441,6 +488,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`rasterizeType`, `targetType`",
+    "notes": "",
     "example": "{\n  \"op\": \"rasterizeLayer\",\n  \"target\": {\n    \"layerName\": \"Smart Object\"\n  }\n}"
   },
   {
@@ -450,6 +498,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`targets[]`",
     "supportedArgs": "`targets`",
+    "notes": "",
     "example": "{\n  \"op\": \"linkLayers\",\n  \"targets\": [\n    {\n      \"layerName\": \"Icon\"\n    },\n    {\n      \"layerName\": \"Label\"\n    }\n  ]\n}"
   },
   {
@@ -459,6 +508,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"unlinkLayer\",\n  \"target\": {\n    \"layerName\": \"Icon\"\n  }\n}"
   },
   {
@@ -468,6 +518,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`angle`, `angleH`, `angleV`, `axis`, `by`, `flip`, `height`, `horizontal`, `percent`, `rotate`, `scale`, `scaleX`, `scaleY`, `skewX`, `skewY`, `translate`, `vertical`, `width`, `x`, `y`",
+    "notes": "For translation via `transformLayer`, pass top-level `x`/`y` (or `horizontal`/`vertical`). `translateLayer` uses the same movement fields.",
     "example": "{\n  \"op\": \"transformLayer\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"scaleX\": 95,\n  \"scaleY\": 95,\n  \"rotate\": 2\n}"
   },
   {
@@ -477,6 +528,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "at least 2 layers via `targets[]` or current active selection",
     "supportedArgs": "`targets`, `axis`, `type`",
+    "notes": "",
     "example": "{\n  \"op\": \"alignLayers\",\n  \"axis\": \"horizontalCenter\",\n  \"targets\": [\n    {\n      \"layerName\": \"Title\"\n    },\n    {\n      \"layerName\": \"CTA\"\n    }\n  ]\n}"
   },
   {
@@ -486,6 +538,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "at least 3 layers via `targets[]` or current active selection",
     "supportedArgs": "`targets`, `axis`, `type`",
+    "notes": "",
     "example": "{\n  \"op\": \"distributeLayers\",\n  \"axis\": \"horizontal\",\n  \"targets\": [\n    {\n      \"layerName\": \"Card 1\"\n    },\n    {\n      \"layerName\": \"Card 2\"\n    },\n    {\n      \"layerName\": \"Card 3\"\n    }\n  ]\n}"
   },
   {
@@ -495,6 +548,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `x/y or horizontal/vertical`",
     "supportedArgs": "`by`, `horizontal`, `vertical`, `x`, `y`",
+    "notes": "",
     "example": "{\n  \"op\": \"translateLayer\",\n  \"target\": {\n    \"layerName\": \"Badge\"\n  },\n  \"x\": 12,\n  \"y\": -8\n}"
   },
   {
@@ -504,6 +558,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `scaleX/scaleY or width/height or scale/percent`",
     "supportedArgs": "`anchor`, `height`, `options`, `percent`, `scale`, `scaleX`, `scaleY`, `width`",
+    "notes": "",
     "example": "{\n  \"op\": \"scaleLayer\",\n  \"target\": {\n    \"layerName\": \"Logo\"\n  },\n  \"scaleX\": 120,\n  \"scaleY\": 120\n}"
   },
   {
@@ -513,6 +568,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `angle`",
     "supportedArgs": "`anchor`, `angle`, `options`",
+    "notes": "",
     "example": "{\n  \"op\": \"rotateLayer\",\n  \"target\": {\n    \"layerName\": \"Badge\"\n  },\n  \"angle\": -12\n}"
   },
   {
@@ -522,6 +578,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `axis`",
     "supportedArgs": "`axis`",
+    "notes": "",
     "example": "{\n  \"op\": \"flipLayer\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"axis\": \"horizontal\"\n}"
   },
   {
@@ -531,6 +588,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `angleH and/or angleV`",
     "supportedArgs": "`angleH`, `angleV`, `horizontal`, `options`, `vertical`",
+    "notes": "",
     "example": "{\n  \"op\": \"skewLayer\",\n  \"target\": {\n    \"layerName\": \"Card\"\n  },\n  \"angleH\": 8\n}"
   },
   {
@@ -540,6 +598,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`input (or path/source)`",
     "supportedArgs": "`input`, `linked`, `name`, `normalizePixels`, `path`, `source`, `transformOptions`",
+    "notes": "",
     "example": "{\n  \"op\": \"placeAsset\",\n  \"input\": \"https://picsum.photos/seed/hero/1080/1080.jpg\",\n  \"name\": \"Hero Image\"\n}"
   },
   {
@@ -549,6 +608,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`preserveName`",
+    "notes": "",
     "example": "{\n  \"op\": \"convertToSmartObject\",\n  \"target\": {\n    \"layerName\": \"Hero Image\"\n  }\n}"
   },
   {
@@ -558,6 +618,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `input (or path/source)`",
     "supportedArgs": "`crop`, `input`, `pageNumber`, `path`, `preserveName`, `source`",
+    "notes": "",
     "example": "{\n  \"op\": \"replaceSmartObject\",\n  \"target\": {\n    \"layerName\": \"Hero Image\"\n  },\n  \"input\": \"./assets/new-hero.jpg\"\n}"
   },
   {
@@ -567,6 +628,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `input (or path/source)`",
     "supportedArgs": "`input`, `path`, `preserveName`, `source`",
+    "notes": "",
     "example": "{\n  \"op\": \"relinkSmartObject\",\n  \"target\": {\n    \"layerName\": \"Hero Image\"\n  },\n  \"input\": \"./assets/linked-hero.psb\"\n}"
   },
   {
@@ -576,6 +638,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"editSmartObject\",\n  \"target\": {\n    \"layerName\": \"Hero Image\"\n  }\n}"
   },
   {
@@ -585,6 +648,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`docRef`",
+    "notes": "",
     "example": "{\n  \"op\": \"selectAll\"\n}"
   },
   {
@@ -594,6 +658,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`docRef`",
+    "notes": "",
     "example": "{\n  \"op\": \"deselect\"\n}"
   },
   {
@@ -604,6 +669,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None",
     "supportedArgs": "`docRef`",
+    "notes": "",
     "example": "{\n  \"op\": \"inverseSelection\"\n}"
   },
   {
@@ -613,6 +679,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`by or radius`",
     "supportedArgs": "`applyEffectAtCanvasBounds`, `by`, `docRef`, `radius`",
+    "notes": "",
     "example": "{\n  \"op\": \"featherSelection\",\n  \"radius\": 8\n}"
   },
   {
@@ -622,6 +689,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`by`",
     "supportedArgs": "`applyEffectAtCanvasBounds`, `by`, `docRef`",
+    "notes": "",
     "example": "{\n  \"op\": \"expandSelection\",\n  \"by\": 12\n}"
   },
   {
@@ -631,6 +699,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`by`",
     "supportedArgs": "`applyEffectAtCanvasBounds`, `by`, `docRef`",
+    "notes": "",
     "example": "{\n  \"op\": \"contractSelection\",\n  \"by\": 8\n}"
   },
   {
@@ -640,6 +709,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`by or tolerance`",
     "supportedArgs": "`by`, `docRef`, `tolerance`",
+    "notes": "",
     "example": "{\n  \"op\": \"growSelection\",\n  \"tolerance\": 32\n}"
   },
   {
@@ -649,6 +719,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`radius`",
     "supportedArgs": "`applyEffectAtCanvasBounds`, `docRef`, `radius`",
+    "notes": "",
     "example": "{\n  \"op\": \"smoothSelection\",\n  \"radius\": 6\n}"
   },
   {
@@ -658,6 +729,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`bounds {left,top,right,bottom}`",
     "supportedArgs": "`antiAlias`, `bounds`, `docRef`, `feather`, `mode`",
+    "notes": "",
     "example": "{\n  \"op\": \"selectRectangle\",\n  \"bounds\": {\n    \"left\": 80,\n    \"top\": 80,\n    \"right\": 1000,\n    \"bottom\": 1400\n  },\n  \"mode\": \"replace\"\n}"
   },
   {
@@ -667,6 +739,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`bounds {left,top,right,bottom}`",
     "supportedArgs": "`antiAlias`, `bounds`, `docRef`, `feather`, `mode`",
+    "notes": "",
     "example": "{\n  \"op\": \"selectEllipse\",\n  \"bounds\": {\n    \"left\": 220,\n    \"top\": 260,\n    \"right\": 860,\n    \"bottom\": 900\n  },\n  \"mode\": \"replace\"\n}"
   },
   {
@@ -676,6 +749,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`points[3+]`",
     "supportedArgs": "`antiAlias`, `docRef`, `feather`, `mode`, `points`",
+    "notes": "",
     "example": "{\n  \"op\": \"selectPolygon\",\n  \"points\": [\n    {\n      \"x\": 100,\n      \"y\": 100\n    },\n    {\n      \"x\": 900,\n      \"y\": 120\n    },\n    {\n      \"x\": 560,\n      \"y\": 900\n    }\n  ],\n  \"mode\": \"replace\"\n}"
   },
   {
@@ -685,6 +759,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`docRef`, `invert`, `mode`",
+    "notes": "",
     "example": "{\n  \"op\": \"selectLayerPixels\",\n  \"target\": {\n    \"layerName\": \"Logo\"\n  },\n  \"mode\": \"replace\"\n}"
   },
   {
@@ -694,6 +769,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "shape-dependent coordinates (`rect`/`ellipse`: `x,y,width,height`; `polygon`: `points[3+]`)",
     "supportedArgs": "`shape`, `type`, `x`, `y`, `left`, `top`, `width`, `height`, `points`, `mode`, `feather`, `antiAlias`",
+    "notes": "",
     "example": "{\n  \"op\": \"setSelection\",\n  \"shape\": \"rect\",\n  \"x\": 120,\n  \"y\": 120,\n  \"width\": 600,\n  \"height\": 320\n}"
   },
   {
@@ -703,6 +779,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`mode` plus mode-specific args (`expand`/`contract`: `by`; `feather`/`smooth`: `radius`; `grow`: `by` or `tolerance`)",
     "supportedArgs": "`mode`, `by`, `radius`, `tolerance`, `applyEffectAtCanvasBounds`",
+    "notes": "",
     "example": "{\n  \"op\": \"modifySelection\",\n  \"mode\": \"expand\",\n  \"by\": 10\n}"
   },
   {
@@ -712,6 +789,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`forceBatchPlay`, `fromSelection`, `hideAll`",
+    "notes": "",
     "example": "{\n  \"op\": \"createLayerMask\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"fromSelection\": true\n}"
   },
   {
@@ -721,6 +799,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`forceBatchPlay`, `fromSelection`, `hideAll`",
+    "notes": "",
     "example": "{\n  \"op\": \"addLayerMask\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"fromSelection\": true\n}"
   },
   {
@@ -730,6 +809,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`apply`, `forceBatchPlay`",
+    "notes": "",
     "example": "{\n  \"op\": \"deleteLayerMask\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"apply\": false\n}"
   },
   {
@@ -739,6 +819,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "`apply`, `forceBatchPlay`",
+    "notes": "",
     "example": "{\n  \"op\": \"removeLayerMask\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"apply\": false\n}"
   },
   {
@@ -748,7 +829,28 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"applyLayerMask\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  }\n}"
+  },
+  {
+    "name": "createClippingMask",
+    "aliases": [
+      "layerMask.clip"
+    ],
+    "required": "`target (or active layer)`",
+    "supportedArgs": "No op-specific args",
+    "notes": "",
+    "example": "{\n  \"op\": \"createClippingMask\",\n  \"target\": {\n    \"layerName\": \"Placed Photo\"\n  }\n}"
+  },
+  {
+    "name": "releaseClippingMask",
+    "aliases": [
+      "layerMask.unclip"
+    ],
+    "required": "`target (or active layer)`",
+    "supportedArgs": "No op-specific args",
+    "notes": "",
+    "example": "{\n  \"op\": \"releaseClippingMask\",\n  \"target\": {\n    \"layerName\": \"Placed Photo\"\n  }\n}"
   },
   {
     "name": "createAdjustmentLayer",
@@ -757,7 +859,8 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "None (`levels` default when omitted)",
     "supportedArgs": "`adjustment`, `name`, `type`",
-    "example": "{\n  \"op\": \"createAdjustmentLayer\",\n  \"type\": \"brightnessContrast\",\n  \"adjustment\": {\n    \"brightness\": 10,\n    \"contrast\": 5\n  },\n  \"name\": \"Grade\"\n}"
+    "notes": "`type`/`adjustment` currently select the adjustment kind; detailed numeric adjustment payload maps are not yet interpreted by the bridge.",
+    "example": "{\n  \"op\": \"createAdjustmentLayer\",\n  \"type\": \"levels\",\n  \"name\": \"Grade\"\n}"
   },
   {
     "name": "applyFilter",
@@ -766,6 +869,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`filter (or kind)`",
     "supportedArgs": "`filter`, `kind`",
+    "notes": "",
     "example": "{\n  \"op\": \"applyFilter\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"filter\": \"gaussianBlur\",\n  \"radius\": 4\n}"
   },
   {
@@ -775,7 +879,20 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `radius`",
     "supportedArgs": "`radius`",
+    "notes": "",
     "example": "{\n  \"op\": \"applyGaussianBlur\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"radius\": 3\n}"
+  },
+  {
+    "name": "applyAddNoise",
+    "aliases": [
+      "filter.addNoise",
+      "applyNoise",
+      "filter.noise"
+    ],
+    "required": "`target (or active layer)`, `amount`",
+    "supportedArgs": "`amount`, `distribution`, `monochromatic`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyAddNoise\",\n  \"target\": {\n    \"layerName\": \"Texture\"\n  },\n  \"amount\": 8,\n  \"distribution\": \"uniform\",\n  \"monochromatic\": true\n}"
   },
   {
     "name": "applyUnsharpMask",
@@ -784,6 +901,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `amount, radius, threshold`",
     "supportedArgs": "`amount`, `radius`, `threshold`",
+    "notes": "",
     "example": "{\n  \"op\": \"applyUnsharpMask\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"amount\": 80,\n  \"radius\": 1.5,\n  \"threshold\": 2\n}"
   },
   {
@@ -793,6 +911,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"applySharpen\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  }\n}"
   },
   {
@@ -802,6 +921,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`",
     "supportedArgs": "No op-specific args",
+    "notes": "",
     "example": "{\n  \"op\": \"applyBlur\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  }\n}"
   },
   {
@@ -810,8 +930,9 @@ export const GENERATED_OPERATION_ENTRIES = [
       "text.create"
     ],
     "required": "`text (or contents)`",
-    "supportedArgs": "`avoidOverlapWith`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`",
-    "example": "{\n  \"op\": \"createTextLayer\",\n  \"name\": \"Headline\",\n  \"text\": \"Summer Launch\",\n  \"fontSize\": 72,\n  \"position\": {\n    \"x\": 96,\n    \"y\": 220\n  }\n}"
+    "supportedArgs": "`alignment`, `align`, `avoidOverlapWith`, `color`, `contents`, `docRef`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `name`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`, `textColor`",
+    "notes": "`position.y` is the text baseline, not the top of glyph bounds. For large display text, place the baseline lower than the desired visual top. `createTextLayer` already accepts style/fitting args; use `setTextStyle` for post-create updates.",
+    "example": "{\n  \"op\": \"createTextLayer\",\n  \"name\": \"Headline\",\n  \"text\": \"Summer Launch\",\n  \"fontSize\": 72,\n  \"textColor\": \"#ffffff\",\n  \"alignment\": \"center\",\n  \"position\": {\n    \"x\": 0,\n    \"y\": 220\n  },\n  \"maxWidth\": 1080\n}"
   },
   {
     "name": "setText",
@@ -820,6 +941,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `text (or contents)`",
     "supportedArgs": "`contents`, `text`",
+    "notes": "",
     "example": "{\n  \"op\": \"setText\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"text\": \"New headline copy\"\n}"
   },
   {
@@ -828,8 +950,9 @@ export const GENERATED_OPERATION_ENTRIES = [
       "text.style"
     ],
     "required": "`target (or active layer)`, `at least one style/content field`",
-    "supportedArgs": "`avoidOverlapWith`, `contents`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `maxHeight`, `maxWidth`, `minFontSize`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`",
-    "example": "{\n  \"op\": \"setTextStyle\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"font\": \"Avenir Next\",\n  \"fontSize\": 64,\n  \"maxWidth\": 860,\n  \"overflow\": \"resize\"\n}"
+    "supportedArgs": "`alignment`, `align`, `avoidOverlapWith`, `color`, `contents`, `ellipsis`, `font`, `fontName`, `fontSize`, `hardMinFontSize`, `justification`, `maxHeight`, `maxWidth`, `minFontSize`, `overflow`, `overflowMode`, `overlapGap`, `position`, `text`, `textColor`",
+    "notes": "",
+    "example": "{\n  \"op\": \"setTextStyle\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"font\": \"Avenir Next\",\n  \"textColor\": \"#f8fafc\",\n  \"alignment\": \"center\",\n  \"fontSize\": 64,\n  \"maxWidth\": 860,\n  \"overflow\": \"resize\"\n}"
   },
   {
     "name": "createShapeLayer",
@@ -837,8 +960,9 @@ export const GENERATED_OPERATION_ENTRIES = [
       "shape.create"
     ],
     "required": "`bounds or x/y/width/height`",
-    "supportedArgs": "`bounds`, `color`, `fill`, `height`, `name`, `shape`, `shapeType`, `width`, `x`, `y`",
-    "example": "{\n  \"op\": \"createShapeLayer\",\n  \"name\": \"CTA Button\",\n  \"shape\": \"rectangle\",\n  \"x\": 88,\n  \"y\": 980,\n  \"width\": 320,\n  \"height\": 92,\n  \"fill\": \"#2563eb\"\n}"
+    "supportedArgs": "`bounds`, `color`, `cornerRadius`, `fill`, `fillType`, `gradient`, `gradientAngle`, `gradientFrom`, `gradientScale`, `gradientTo`, `gradientType`, `height`, `name`, `radius`, `shape`, `shapeType`, `width`, `x`, `y`",
+    "notes": "",
+    "example": "{\n  \"op\": \"createShapeLayer\",\n  \"name\": \"CTA Button\",\n  \"shape\": \"rectangle\",\n  \"x\": 88,\n  \"y\": 980,\n  \"width\": 320,\n  \"height\": 92,\n  \"fillType\": \"gradient\",\n  \"cornerRadius\": 46,\n  \"gradient\": {\n    \"from\": \"#22c55e\",\n    \"to\": \"#15803d\",\n    \"angle\": 90\n  }\n}"
   },
   {
     "name": "export",
@@ -848,6 +972,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`output`",
     "supportedArgs": "`docRef`, `target`, `output`, `format`, `quality`, `metadata`, `sRGB`, `options`",
+    "notes": "",
     "example": "{\n  \"op\": \"export\",\n  \"output\": \"./tmp/frame.png\",\n  \"format\": \"png\",\n  \"quality\": 90\n}"
   },
   {
@@ -857,6 +982,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`output`",
     "supportedArgs": "`docRef`, `output`, `format`, `quality`, `metadata`, `sRGB`, `options`",
+    "notes": "",
     "example": "{\n  \"op\": \"exportDocument\",\n  \"output\": \"./tmp/document.png\",\n  \"format\": \"png\"\n}"
   },
   {
@@ -866,6 +992,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`target (or active layer)`, `output`",
     "supportedArgs": "`target`, `docRef`, `output`, `format`, `quality`, `metadata`, `sRGB`, `options`",
+    "notes": "",
     "example": "{\n  \"op\": \"exportLayer\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"output\": \"./tmp/hero.png\",\n  \"format\": \"png\"\n}"
   },
   {
@@ -875,6 +1002,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`match`, `outputDir (or output)`",
     "supportedArgs": "`docRef`, `format`, `match`, `output`, `outputDir`",
+    "notes": "",
     "example": "{\n  \"op\": \"exportLayersByName\",\n  \"match\": \"^(Hero|CTA)$\",\n  \"format\": \"png\",\n  \"outputDir\": \"./tmp/layers\"\n}"
   },
   {
@@ -884,6 +1012,7 @@ export const GENERATED_OPERATION_ENTRIES = [
     ],
     "required": "`commands[] or command/descriptor`",
     "supportedArgs": "`allowUnavailable`, `command`, `commands`, `descriptor`, `options`",
-    "example": "{\n  \"op\": \"batchPlay\",\n  \"commands\": [\n    {\n      \"_obj\": \"get\",\n      \"_target\": [\n        {\n          \"_ref\": \"document\",\n          \"_enum\": \"ordinal\",\n          \"_value\": \"targetEnum\"\n        }\n      ]\n    }\n  ]\n}"
+    "notes": "`textStyleRange[*].textStyle` replaces style objects rather than patching them. Include every style field you need to preserve (font family/style, size, color, etc.), or use first-class text ops (`createTextLayer` / `setTextStyle`) when possible.",
+    "example": "{\n  \"op\": \"batchPlay\",\n  \"commands\": [\n    {\n      \"_obj\": \"set\",\n      \"_target\": [\n        {\n          \"_ref\": \"textLayer\",\n          \"_name\": \"Headline\"\n        }\n      ],\n      \"to\": {\n        \"_obj\": \"textLayer\",\n        \"textStyleRange\": [\n          {\n            \"_obj\": \"textStyleRange\",\n            \"from\": 0,\n            \"to\": 8,\n            \"textStyle\": {\n              \"_obj\": \"textStyle\",\n              \"fontPostScriptName\": \"Impact\",\n              \"fontName\": \"Impact\",\n              \"fontStyleName\": \"Regular\",\n              \"size\": {\n                \"_obj\": \"unitDouble\",\n                \"_unit\": \"pointsUnit\",\n                \"_value\": 200\n              },\n              \"color\": {\n                \"_obj\": \"RGBColor\",\n                \"red\": 255,\n                \"green\": 255,\n                \"blue\": 255\n              }\n            }\n          }\n        ]\n      }\n    }\n  ]\n}"
   }
 ] as const;

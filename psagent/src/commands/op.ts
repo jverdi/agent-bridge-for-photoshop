@@ -19,6 +19,9 @@ function formatCatalogHelpText(groups: Array<{ name: string; operations: string[
   }
 
   lines.push("");
+  lines.push("Guidance: Photoshop can switch active documents between separate CLI invocations.");
+  lines.push("  Keep dependent work in one `psagent op apply` transaction and use refs.");
+  lines.push("");
   lines.push("Run `psagent op <operation> --help` for operation-specific arguments and examples.");
   return lines.join("\n");
 }
@@ -27,12 +30,16 @@ function formatOperationHelpText(entry: {
   aliases: string[];
   required: string;
   supportedArgs: string;
+  notes: string;
   example: string;
 }): string {
   const lines = ["", "Operation arguments and examples (from docs/reference/operation-arguments-and-examples.mdx):"];
 
   lines.push(`  Required: ${entry.required}`);
   lines.push(`  Supported args: ${entry.supportedArgs}`);
+  if (entry.notes) {
+    lines.push(`  Notes: ${entry.notes}`);
+  }
   lines.push(`  Aliases: ${entry.aliases.length > 0 ? entry.aliases.join(", ") : "None"}`);
 
   if (entry.example) {

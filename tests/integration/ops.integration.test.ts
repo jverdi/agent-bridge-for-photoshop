@@ -354,6 +354,7 @@ test("op help lists operation catalog and per-operation argument docs", async ()
   assert.match(opHelp.stdout, /Operation catalog \(from docs\/reference\/operation-catalog\.mdx\):/u);
   assert.match(opHelp.stdout, /\bcreateDocument\b/u);
   assert.match(opHelp.stdout, /\bbatchPlay\b/u);
+  assert.match(opHelp.stdout, /Guidance: Photoshop can switch active documents between separate CLI invocations\./u);
   assert.match(opHelp.stdout, /psagent op <operation> --help/u);
 
   const createDocumentHelp = await runCli(["op", "createDocument", "--help"], process.env);
@@ -368,8 +369,25 @@ test("op help lists operation catalog and per-operation argument docs", async ()
   );
   assert.match(createDocumentHelp.stdout, /Required: None/u);
   assert.match(createDocumentHelp.stdout, /Supported args: .*width/u);
+  assert.match(createDocumentHelp.stdout, /Notes: .*mode.*fill/u);
   assert.match(createDocumentHelp.stdout, /Aliases: .*doc\.create/u);
   assert.match(createDocumentHelp.stdout, /"op": "createDocument"/u);
+
+  const createTextHelp = await runCli(["op", "createTextLayer", "--help"], process.env);
+  assert.equal(
+    createTextHelp.code,
+    0,
+    `op createTextLayer --help failed\nstdout:\n${createTextHelp.stdout}\nstderr:\n${createTextHelp.stderr}`
+  );
+  assert.match(createTextHelp.stdout, /Notes: .*position\.y.*baseline/u);
+
+  const saveDocumentAsHelp = await runCli(["op", "saveDocumentAs", "--help"], process.env);
+  assert.equal(
+    saveDocumentAsHelp.code,
+    0,
+    `op saveDocumentAs --help failed\nstdout:\n${saveDocumentAsHelp.stdout}\nstderr:\n${saveDocumentAsHelp.stderr}`
+  );
+  assert.match(saveDocumentAsHelp.stdout, /Notes: .*Use `output` for the destination path/u);
 
   const aliasHelp = await runCli(["op", "addLayerMask", "--help"], process.env);
   assert.equal(aliasHelp.code, 0, `op addLayerMask --help failed\nstdout:\n${aliasHelp.stdout}\nstderr:\n${aliasHelp.stderr}`);
