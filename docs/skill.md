@@ -37,11 +37,20 @@ Reach for this skill when:
 | `psagent doc open <path>` | Open a Photoshop document |
 | `psagent layer list [--match <regex>]` | List layers in active document |
 | `psagent op apply -f <ops.json> [--checkpoint] [--dry-run]` | Apply operation envelope |
+| `psagent op -h` | List available operations and quick catalog |
+| `psagent op <command> -h` | Show operation arguments, aliases, and example payload |
 | `psagent render --format png\|jpg --out <path>` | Export active document |
 | `psagent checkpoint list` | List saved checkpoints |
 | `psagent checkpoint restore <id>` | Restore document to checkpoint |
 | `psagent doctor` | Diagnose health and connectivity |
 | `psagent mcp-serve` | Start MCP server for agent tools |
+
+### Discover operation contracts from CLI help
+
+Use these before writing an `ops` payload:
+
+- `psagent op -h` to see the full operation list/capability catalog.
+- `psagent op <command> -h` to see required args, supported args, aliases, and a copy/paste JSON example for that operation.
 
 ### Global flags
 
