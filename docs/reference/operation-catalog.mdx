@@ -20,6 +20,12 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`cropDocument`](/reference/operation-arguments-and-examples#cropdocument)
 - [`trimDocument`](/reference/operation-arguments-and-examples#trimdocument)
 - [`rotateDocument`](/reference/operation-arguments-and-examples#rotatedocument)
+- [`changeDocumentMode`](/reference/operation-arguments-and-examples#changedocumentmode)
+- [`convertColorProfile`](/reference/operation-arguments-and-examples#convertcolorprofile)
+- [`calculations`](/reference/operation-arguments-and-examples#calculations)
+- [`applyImage`](/reference/operation-arguments-and-examples#applyimage)
+- [`splitChannels`](/reference/operation-arguments-and-examples#splitchannels)
+- [`sampleColor`](/reference/operation-arguments-and-examples#samplecolor)
 - [`flattenDocument`](/reference/operation-arguments-and-examples#flattendocument) ([`flattenImage`](/reference/operation-arguments-and-examples#flattendocument) alias)
 - [`mergeVisible`](/reference/operation-arguments-and-examples#mergevisible)
 
@@ -49,6 +55,10 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`rasterizeLayer`](/reference/operation-arguments-and-examples#rasterizelayer)
 - [`linkLayers`](/reference/operation-arguments-and-examples#linklayers)
 - [`unlinkLayer`](/reference/operation-arguments-and-examples#unlinklayer)
+- [`createLayerComp`](/reference/operation-arguments-and-examples#createlayercomp)
+- [`applyLayerComp`](/reference/operation-arguments-and-examples#applylayercomp)
+- [`recaptureLayerComp`](/reference/operation-arguments-and-examples#recapturelayercomp)
+- [`deleteLayerComp`](/reference/operation-arguments-and-examples#deletelayercomp)
 
 ## Transform and layout
 
@@ -83,6 +93,22 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`selectEllipse`](/reference/operation-arguments-and-examples#selectellipse)
 - [`selectPolygon`](/reference/operation-arguments-and-examples#selectpolygon)
 - [`selectLayerPixels`](/reference/operation-arguments-and-examples#selectlayerpixels)
+- [`createChannel`](/reference/operation-arguments-and-examples#createchannel)
+- [`duplicateChannel`](/reference/operation-arguments-and-examples#duplicatechannel)
+- [`deleteChannel`](/reference/operation-arguments-and-examples#deletechannel)
+- [`saveSelection`](/reference/operation-arguments-and-examples#saveselection)
+- [`saveSelectionTo`](/reference/operation-arguments-and-examples#saveselectionto)
+- [`loadSelection`](/reference/operation-arguments-and-examples#loadselection)
+- [`createPath`](/reference/operation-arguments-and-examples#createpath)
+- [`deletePath`](/reference/operation-arguments-and-examples#deletepath)
+- [`makeWorkPathFromSelection`](/reference/operation-arguments-and-examples#makeworkpathfromselection)
+- [`makeSelectionFromPath`](/reference/operation-arguments-and-examples#makeselectionfrompath)
+- [`fillPath`](/reference/operation-arguments-and-examples#fillpath)
+- [`strokePath`](/reference/operation-arguments-and-examples#strokepath)
+- [`makeClippingPath`](/reference/operation-arguments-and-examples#makeclippingpath)
+- [`addGuide`](/reference/operation-arguments-and-examples#addguide)
+- [`removeGuide`](/reference/operation-arguments-and-examples#removeguide)
+- [`clearGuides`](/reference/operation-arguments-and-examples#clearguides)
 - [`setSelection`](/reference/operation-arguments-and-examples#setselection)
 - [`modifySelection`](/reference/operation-arguments-and-examples#modifyselection)
 - [`createLayerMask`](/reference/operation-arguments-and-examples#createlayermask) ([`addLayerMask`](/reference/operation-arguments-and-examples#addlayermask) alias)
@@ -105,12 +131,20 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 ## Adjustments and filters
 
 - [`createAdjustmentLayer`](/reference/operation-arguments-and-examples#createadjustmentlayer)
+- [`setAdjustmentLayer`](/reference/operation-arguments-and-examples#setadjustmentlayer)
 - [`applyFilter`](/reference/operation-arguments-and-examples#applyfilter)
 - [`applyGaussianBlur`](/reference/operation-arguments-and-examples#applygaussianblur)
 - [`applyAddNoise`](/reference/operation-arguments-and-examples#applyaddnoise)
 - [`applyUnsharpMask`](/reference/operation-arguments-and-examples#applyunsharpmask)
 - [`applySharpen`](/reference/operation-arguments-and-examples#applysharpen)
 - [`applyBlur`](/reference/operation-arguments-and-examples#applyblur)
+- [`applyMotionBlur`](/reference/operation-arguments-and-examples#applymotionblur)
+- [`applySmartBlur`](/reference/operation-arguments-and-examples#applysmartblur)
+- [`applyHighPass`](/reference/operation-arguments-and-examples#applyhighpass)
+- [`applyMedianNoise`](/reference/operation-arguments-and-examples#applymediannoise)
+- [`applyMinimum`](/reference/operation-arguments-and-examples#applyminimum)
+- [`applyMaximum`](/reference/operation-arguments-and-examples#applymaximum)
+- [`applyDustAndScratches`](/reference/operation-arguments-and-examples#applydustandscratches)
 
 ## Export and low-level actions
 
@@ -118,6 +152,15 @@ For argument-level docs and copy/paste payloads for every operation, see [Operat
 - [`exportDocument`](/reference/operation-arguments-and-examples#exportdocument)
 - [`exportLayer`](/reference/operation-arguments-and-examples#exportlayer)
 - [`exportLayersByName`](/reference/operation-arguments-and-examples#exportlayersbyname)
+- [`getPixels`](/reference/operation-arguments-and-examples#getpixels)
+- [`putPixels`](/reference/operation-arguments-and-examples#putpixels)
+- [`getSelectionPixels`](/reference/operation-arguments-and-examples#getselectionpixels)
+- [`putSelectionPixels`](/reference/operation-arguments-and-examples#putselectionpixels)
+- [`getLayerMaskPixels`](/reference/operation-arguments-and-examples#getlayermaskpixels)
+- [`putLayerMaskPixels`](/reference/operation-arguments-and-examples#putlayermaskpixels)
+- [`encodeImageData`](/reference/operation-arguments-and-examples#encodeimagedata)
+- [`playAction`](/reference/operation-arguments-and-examples#playaction)
+- [`playActionSet`](/reference/operation-arguments-and-examples#playactionset)
 - [`batchPlay`](/reference/operation-arguments-and-examples#batchplay)
 
 ## Known behavior notes

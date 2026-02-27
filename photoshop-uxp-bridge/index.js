@@ -2,6 +2,7 @@ const photoshop = require("photoshop");
 const uxp = require("uxp");
 
 const { app, core, action, constants } = photoshop;
+const imaging = photoshop?.imaging;
 const localFileSystem = uxp?.storage?.localFileSystem;
 const localFileSystemTypes = uxp?.storage?.types;
 const localFileSystemFormats = uxp?.storage?.formats;
@@ -93,11 +94,21 @@ const OP_REQUIRES_LAYER_TARGET = new Set([
   "createClippingMask",
   "releaseClippingMask",
   "setLayerEffects",
+  "setAdjustmentLayer",
   "applyGaussianBlur",
   "applyAddNoise",
   "applyUnsharpMask",
   "applySharpen",
   "applyBlur",
+  "applyMotionBlur",
+  "applySmartBlur",
+  "applyHighPass",
+  "applyMedianNoise",
+  "applyMinimum",
+  "applyMaximum",
+  "applyDustAndScratches",
+  "getLayerMaskPixels",
+  "putLayerMaskPixels",
   "setText",
   "setTextStyle",
   "exportLayer"
@@ -282,6 +293,52 @@ function cloneSerializable(value) {
   } catch {
     return value;
   }
+}
+
+function bytesToBase64(bytes) {
+  if (!bytes) {
+    return "";
+  }
+  try {
+    if (typeof Buffer !== "undefined" && typeof Buffer.from === "function") {
+      return Buffer.from(bytes).toString("base64");
+    }
+  } catch {
+    // Continue to fallback.
+  }
+  let binary = "";
+  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const limit = Math.min(arr.length, 8_000_000);
+  for (let index = 0; index < limit; index += 1) {
+    binary += String.fromCharCode(arr[index]);
+  }
+  if (typeof btoa === "function") {
+    return btoa(binary);
+  }
+  return "";
+}
+
+function base64ToBytes(encoded) {
+  const raw = String(encoded || "");
+  if (!raw) {
+    return new Uint8Array();
+  }
+  try {
+    if (typeof Buffer !== "undefined" && typeof Buffer.from === "function") {
+      return new Uint8Array(Buffer.from(raw, "base64"));
+    }
+  } catch {
+    // Continue to fallback.
+  }
+  if (typeof atob === "function") {
+    const binary = atob(raw);
+    const out = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      out[index] = binary.charCodeAt(index);
+    }
+    return out;
+  }
+  return new Uint8Array();
 }
 
 function toFiniteNumber(value, fallback) {
@@ -1481,6 +1538,15 @@ function resolveSelectionType(rawType) {
   return normalizeEnumLookup(constants?.SelectionType, rawType, rawType);
 }
 
+function resolveGuideDirection(rawDirection) {
+  if (!rawDirection) {
+    return constants?.Direction?.HORIZONTAL || "horizontal";
+  }
+  const token = normalizeLookupToken(rawDirection);
+  const alias = token === "vertical" || token === "v" ? "vertical" : "horizontal";
+  return normalizeEnumLookup(constants?.Direction, alias, alias);
+}
+
 function resolveTrimType(rawType) {
   if (!rawType) {
     return constants?.TrimType?.TRANSPARENT || rawType;
@@ -1828,6 +1894,298 @@ async function runRotateDocument(op, ctx) {
   return {
     document: serializeDocument(doc),
     detail: `Rotated document by ${angle}deg`
+  };
+}
+
+async function runChangeDocumentMode(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  const mode = op.mode || op.to || op.newMode;
+  if (!mode) {
+    throw new Error("changeDocumentMode requires mode");
+  }
+  if (typeof doc.changeMode !== "function") {
+    throw new Error("Document changeMode API unavailable in current Photoshop version");
+  }
+  await doc.changeMode(normalizeEnumLookup(constants?.ChangeMode, mode, mode));
+  return {
+    document: serializeDocument(doc),
+    detail: `Changed document mode to '${String(mode)}'`
+  };
+}
+
+async function runConvertColorProfile(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  const profile = op.profile || op.name || op.colorProfile;
+  if (!profile) {
+    throw new Error("convertColorProfile requires profile");
+  }
+  if (typeof doc.convertProfile !== "function") {
+    throw new Error("Document convertProfile API unavailable in current Photoshop version");
+  }
+  await doc.convertProfile(
+    String(profile),
+    normalizeEnumLookup(constants?.Intent, op.intent || "relativeColorimetric", op.intent || "relativeColorimetric"),
+    op.blackPointCompensation !== undefined ? Boolean(op.blackPointCompensation) : true,
+    op.dither !== undefined ? Boolean(op.dither) : false
+  );
+  return {
+    document: serializeDocument(doc),
+    detail: `Converted profile to '${String(profile)}'`
+  };
+}
+
+async function runCalculations(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  if (typeof doc.calculations !== "function") {
+    throw new Error("Document calculations API unavailable in current Photoshop version");
+  }
+  const options = op.options && typeof op.options === "object" && !Array.isArray(op.options) ? cloneSerializable(op.options) : stripAdjustmentControlFields(op);
+  const result = await doc.calculations(options);
+  return {
+    result: cloneSerializable(result),
+    detail: "Applied calculations"
+  };
+}
+
+async function runApplyImage(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  const layer = op.targetLayer ? requireLayerTarget({ ...op, target: op.targetLayer }, ctx.refs, { doc }) : doc.activeLayers?.[0];
+  if (layer && typeof layer.applyImage === "function") {
+    const options = op.options && typeof op.options === "object" && !Array.isArray(op.options) ? cloneSerializable(op.options) : stripAdjustmentControlFields(op);
+    await layer.applyImage(options);
+    return {
+      layer: serializeLayer(layer),
+      refValue: buildLayerRefValue(layer),
+      detail: `Applied image to layer '${layer.name}'`
+    };
+  }
+  if (typeof doc.applyImage === "function") {
+    const options = op.options && typeof op.options === "object" && !Array.isArray(op.options) ? cloneSerializable(op.options) : stripAdjustmentControlFields(op);
+    const result = await doc.applyImage(options);
+    return {
+      result: cloneSerializable(result),
+      detail: "Applied image"
+    };
+  }
+  throw new Error("Apply image API unavailable in current Photoshop version");
+}
+
+async function runSplitChannels(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  if (typeof doc.splitChannels !== "function") {
+    throw new Error("Document splitChannels API unavailable in current Photoshop version");
+  }
+  const documents = await doc.splitChannels();
+  return {
+    documents: Array.isArray(documents) ? documents.map(serializeDocument) : [],
+    detail: "Split channels into documents"
+  };
+}
+
+async function runSampleColor(op, ctx) {
+  const doc = findDocument(op.docRef || op.target || "active", ctx.refs) || activeDocumentOrThrow();
+  if (typeof doc.sampleColor !== "function") {
+    throw new Error("Document sampleColor API unavailable in current Photoshop version");
+  }
+  const x = toFiniteNumber(op.x ?? op.position?.x, undefined);
+  const y = toFiniteNumber(op.y ?? op.position?.y, undefined);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    throw new Error("sampleColor requires x/y or position{x,y}");
+  }
+  const color = await doc.sampleColor({ x, y });
+  return {
+    color: cloneSerializable(color),
+    detail: `Sampled color at (${x}, ${y})`
+  };
+}
+
+function requireImagingFunction(name) {
+  if (!imaging || typeof imaging[name] !== "function") {
+    throw new Error(`Imaging API '${name}' unavailable in current Photoshop version`);
+  }
+  return imaging[name].bind(imaging);
+}
+
+function normalizeImagingImageData(rawImageData) {
+  if (!rawImageData || typeof rawImageData !== "object" || Array.isArray(rawImageData)) {
+    return rawImageData;
+  }
+  const imageData = cloneSerializable(rawImageData);
+  if (typeof imageData.data === "string") {
+    imageData.data = base64ToBytes(imageData.data);
+  }
+  if (typeof imageData.pixelData === "string") {
+    imageData.pixelData = base64ToBytes(imageData.pixelData);
+  }
+  return imageData;
+}
+
+function serializeImagingPayload(rawResult, includeData) {
+  const result = cloneSerializable(rawResult) || {};
+  const imageData = result.imageData && typeof result.imageData === "object" ? result.imageData : result;
+  const rawData = imageData.data || imageData.pixelData;
+  const payload = {
+    width: imageData.width,
+    height: imageData.height,
+    components: imageData.components,
+    componentSize: imageData.componentSize,
+    colorSpace: imageData.colorSpace,
+    colorProfile: imageData.colorProfile
+  };
+  if (rawData && (rawData.byteLength !== undefined || rawData.length !== undefined)) {
+    payload.byteLength = Number(rawData.byteLength ?? rawData.length ?? 0);
+    if (includeData) {
+      payload.data = bytesToBase64(rawData);
+    }
+  }
+  if (result.sourceBounds) {
+    payload.sourceBounds = cloneSerializable(result.sourceBounds);
+  }
+  if (result.targetBounds) {
+    payload.targetBounds = cloneSerializable(result.targetBounds);
+  }
+  return payload;
+}
+
+function buildImagingRequestBase(op, ctx, options = {}) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const request = {
+    documentID: Number(doc.id),
+    ...(op.options && typeof op.options === "object" && !Array.isArray(op.options) ? cloneSerializable(op.options) : {})
+  };
+  if (options.includeTargetLayer) {
+    const layer = requireLayerTarget(op, ctx.refs, { doc });
+    request.layerID = Number(layer.id);
+  } else if (op.target !== undefined) {
+    const layer = requireLayerTarget(op, ctx.refs, { doc });
+    request.layerID = Number(layer.id);
+  }
+  if (op.sourceBounds && typeof op.sourceBounds === "object") {
+    request.sourceBounds = cloneSerializable(op.sourceBounds);
+  }
+  if (op.targetBounds && typeof op.targetBounds === "object") {
+    request.targetBounds = cloneSerializable(op.targetBounds);
+  }
+  if (op.targetSize && typeof op.targetSize === "object") {
+    request.targetSize = cloneSerializable(op.targetSize);
+  }
+  if (op.colorSpace) {
+    request.colorSpace = String(op.colorSpace);
+  }
+  if (op.componentSize) {
+    request.componentSize = Number(op.componentSize);
+  }
+  return {
+    doc,
+    request
+  };
+}
+
+async function runGetPixels(op, ctx) {
+  const getPixels = requireImagingFunction("getPixels");
+  const { request } = buildImagingRequestBase(op, ctx);
+  const result = await getPixels(request);
+  return {
+    pixels: serializeImagingPayload(result, Boolean(op.includeData)),
+    detail: "Read pixels"
+  };
+}
+
+async function runPutPixels(op, ctx) {
+  const putPixels = requireImagingFunction("putPixels");
+  const { request } = buildImagingRequestBase(op, ctx);
+  const imageData = normalizeImagingImageData(op.imageData || op.pixels);
+  if (!imageData || typeof imageData !== "object") {
+    throw new Error("putPixels requires imageData/pixels");
+  }
+  const result = await putPixels({
+    ...request,
+    imageData
+  });
+  return {
+    result: cloneSerializable(result),
+    detail: "Wrote pixels"
+  };
+}
+
+async function runGetSelectionPixels(op, ctx) {
+  const getSelection = requireImagingFunction("getSelection");
+  const { request } = buildImagingRequestBase(op, ctx);
+  const result = await getSelection(request);
+  return {
+    pixels: serializeImagingPayload(result, Boolean(op.includeData)),
+    detail: "Read selection pixels"
+  };
+}
+
+async function runPutSelectionPixels(op, ctx) {
+  const putSelection = requireImagingFunction("putSelection");
+  const { request } = buildImagingRequestBase(op, ctx);
+  const imageData = normalizeImagingImageData(op.imageData || op.pixels);
+  if (!imageData || typeof imageData !== "object") {
+    throw new Error("putSelectionPixels requires imageData/pixels");
+  }
+  const result = await putSelection({
+    ...request,
+    imageData
+  });
+  return {
+    result: cloneSerializable(result),
+    detail: "Wrote selection pixels"
+  };
+}
+
+async function runGetLayerMaskPixels(op, ctx) {
+  const getLayerMask = requireImagingFunction("getLayerMask");
+  const { request } = buildImagingRequestBase(op, ctx, { includeTargetLayer: true });
+  const result = await getLayerMask(request);
+  return {
+    pixels: serializeImagingPayload(result, Boolean(op.includeData)),
+    detail: "Read layer mask pixels"
+  };
+}
+
+async function runPutLayerMaskPixels(op, ctx) {
+  const putLayerMask = requireImagingFunction("putLayerMask");
+  const { request } = buildImagingRequestBase(op, ctx, { includeTargetLayer: true });
+  const imageData = normalizeImagingImageData(op.imageData || op.pixels);
+  if (!imageData || typeof imageData !== "object") {
+    throw new Error("putLayerMaskPixels requires imageData/pixels");
+  }
+  const result = await putLayerMask({
+    ...request,
+    imageData
+  });
+  return {
+    result: cloneSerializable(result),
+    detail: "Wrote layer mask pixels"
+  };
+}
+
+async function runEncodeImageData(op, ctx) {
+  const encodeImageData = requireImagingFunction("encodeImageData");
+  const imageData = normalizeImagingImageData(op.imageData || op.pixels);
+  if (!imageData || typeof imageData !== "object") {
+    throw new Error("encodeImageData requires imageData/pixels");
+  }
+
+  let encoded;
+  if (op.options && typeof op.options === "object" && !Array.isArray(op.options)) {
+    encoded = await encodeImageData(imageData, cloneSerializable(op.options));
+  } else {
+    encoded = await encodeImageData(imageData, {
+      format: String(op.format || "png"),
+      ...(Number.isFinite(Number(op.quality)) ? { quality: Number(op.quality) } : {})
+    });
+  }
+
+  const bytes = encoded?.data || encoded?.buffer || encoded;
+  return {
+    encoded: {
+      byteLength: Number(bytes?.byteLength ?? bytes?.length ?? 0),
+      data: bytesToBase64(bytes)
+    },
+    detail: "Encoded image data"
   };
 }
 
@@ -3576,11 +3934,759 @@ async function runEditSmartObject(op, ctx) {
   };
 }
 
+function serializeChannel(channel) {
+  if (!channel) {
+    return null;
+  }
+  return {
+    id: channel.id !== undefined ? String(channel.id) : undefined,
+    name: channel.name || undefined,
+    kind: channel.kind || undefined
+  };
+}
+
+function listChannelsForDoc(doc) {
+  try {
+    return Array.from(doc.channels || []);
+  } catch {
+    return [];
+  }
+}
+
+function normalizeChannelTarget(rawTarget, refs) {
+  const target = resolveRefsInValue(rawTarget, refs || {}, ["channel"]);
+  if (target === undefined || target === null || target === "") {
+    return null;
+  }
+  if (typeof target === "number") {
+    return {
+      channelId: String(target)
+    };
+  }
+  if (typeof target === "string") {
+    const numeric = Number(target);
+    if (Number.isFinite(numeric)) {
+      return {
+        channelId: String(target)
+      };
+    }
+    return {
+      channelName: target
+    };
+  }
+  if (Array.isArray(target)) {
+    throw new Error("Channel target must not be an array");
+  }
+  const channelId = target.channelId ?? target.id;
+  const channelName = target.channelName ?? target.name;
+  if (!channelId && !channelName) {
+    throw new Error("Channel target does not include channelId/channelName");
+  }
+  return {
+    channelId: channelId !== undefined ? String(channelId) : undefined,
+    channelName: channelName !== undefined ? String(channelName) : undefined
+  };
+}
+
+function findChannelForDoc(doc, rawTarget, refs, options = {}) {
+  const channels = listChannelsForDoc(doc);
+  if (rawTarget === undefined || rawTarget === null || rawTarget === "") {
+    if (options.allowAny) {
+      return channels[0] || null;
+    }
+    return null;
+  }
+
+  const target = normalizeChannelTarget(rawTarget, refs);
+  if (target?.channelId) {
+    const numericId = Number(target.channelId);
+    const byId =
+      channels.find((channel) => {
+        if (Number.isFinite(numericId) && Number(channel.id) === numericId) {
+          return true;
+        }
+        return String(channel.id) === String(target.channelId);
+      }) || null;
+    if (byId) {
+      return byId;
+    }
+  }
+
+  if (target?.channelName) {
+    const byName = channels.find((channel) => channel.name === target.channelName) || null;
+    if (byName) {
+      return byName;
+    }
+  }
+
+  return null;
+}
+
+function serializePathItem(pathItem) {
+  if (!pathItem) {
+    return null;
+  }
+  return {
+    id: pathItem.id !== undefined ? String(pathItem.id) : undefined,
+    name: pathItem.name || undefined,
+    kind: pathItem.kind || undefined
+  };
+}
+
+function listPathItemsForDoc(doc) {
+  try {
+    return Array.from(doc.pathItems || []);
+  } catch {
+    return [];
+  }
+}
+
+function normalizePathTarget(rawTarget, refs) {
+  const target = resolveRefsInValue(rawTarget, refs || {}, ["path"]);
+  if (target === undefined || target === null || target === "") {
+    return null;
+  }
+  if (typeof target === "number") {
+    return {
+      pathId: String(target)
+    };
+  }
+  if (typeof target === "string") {
+    const numeric = Number(target);
+    if (Number.isFinite(numeric)) {
+      return {
+        pathId: String(target)
+      };
+    }
+    return {
+      pathName: target
+    };
+  }
+  if (Array.isArray(target)) {
+    throw new Error("Path target must not be an array");
+  }
+  const pathId = target.pathId ?? target.id;
+  const pathName = target.pathName ?? target.name;
+  if (!pathId && !pathName) {
+    throw new Error("Path target does not include pathId/pathName");
+  }
+  return {
+    pathId: pathId !== undefined ? String(pathId) : undefined,
+    pathName: pathName !== undefined ? String(pathName) : undefined
+  };
+}
+
+function findPathForDoc(doc, rawTarget, refs, options = {}) {
+  const paths = listPathItemsForDoc(doc);
+  if (rawTarget === undefined || rawTarget === null || rawTarget === "") {
+    if (options.allowAny) {
+      return paths[0] || null;
+    }
+    return null;
+  }
+
+  const target = normalizePathTarget(rawTarget, refs);
+  if (target?.pathId) {
+    const numericId = Number(target.pathId);
+    const byId =
+      paths.find((item) => {
+        if (Number.isFinite(numericId) && Number(item.id) === numericId) {
+          return true;
+        }
+        return String(item.id) === String(target.pathId);
+      }) || null;
+    if (byId) {
+      return byId;
+    }
+  }
+  if (target?.pathName) {
+    return paths.find((item) => item.name === target.pathName) || null;
+  }
+  return null;
+}
+
+function listLayerCompsForDoc(doc) {
+  try {
+    return Array.from(doc.layerComps || []);
+  } catch {
+    return [];
+  }
+}
+
+function normalizeLayerCompTarget(rawTarget, refs) {
+  const target = resolveRefsInValue(rawTarget, refs || {}, ["layerComp"]);
+  if (target === undefined || target === null || target === "") {
+    return null;
+  }
+  if (typeof target === "number") {
+    return {
+      layerCompId: String(target)
+    };
+  }
+  if (typeof target === "string") {
+    const numeric = Number(target);
+    if (Number.isFinite(numeric)) {
+      return {
+        layerCompId: String(target)
+      };
+    }
+    return {
+      layerCompName: target
+    };
+  }
+  if (Array.isArray(target)) {
+    throw new Error("Layer comp target must not be an array");
+  }
+  const layerCompId = target.layerCompId ?? target.id;
+  const layerCompName = target.layerCompName ?? target.name;
+  if (!layerCompId && !layerCompName) {
+    throw new Error("Layer comp target does not include layerCompId/layerCompName");
+  }
+  return {
+    layerCompId: layerCompId !== undefined ? String(layerCompId) : undefined,
+    layerCompName: layerCompName !== undefined ? String(layerCompName) : undefined
+  };
+}
+
+function findLayerCompForDoc(doc, rawTarget, refs, options = {}) {
+  const comps = listLayerCompsForDoc(doc);
+  if (rawTarget === undefined || rawTarget === null || rawTarget === "") {
+    if (options.allowAny) {
+      return comps[0] || null;
+    }
+    return null;
+  }
+  const target = normalizeLayerCompTarget(rawTarget, refs);
+  if (target?.layerCompId) {
+    const numericId = Number(target.layerCompId);
+    const byId =
+      comps.find((comp) => {
+        if (Number.isFinite(numericId) && Number(comp.id) === numericId) {
+          return true;
+        }
+        return String(comp.id) === String(target.layerCompId);
+      }) || null;
+    if (byId) {
+      return byId;
+    }
+  }
+  if (target?.layerCompName) {
+    return comps.find((comp) => comp.name === target.layerCompName) || null;
+  }
+  return null;
+}
+
 function selectionForDoc(doc) {
   if (!doc?.selection) {
     throw new Error("Selection API unavailable in current Photoshop version");
   }
   return doc.selection;
+}
+
+function resolveSelectionChannelTarget(op, refs) {
+  return op.channel || op.target || op.channelName || op.channelId || op.name;
+}
+
+async function runCreateChannel(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const channels = doc.channels;
+  if (!channels || typeof channels.add !== "function") {
+    throw new Error("Channel API unavailable in current Photoshop version");
+  }
+  const created = await channels.add();
+  if (created && op.name) {
+    created.name = String(op.name);
+  }
+  return {
+    channel: serializeChannel(created),
+    refValue: created?.id !== undefined ? String(created.id) : undefined,
+    detail: `Created channel '${created?.name || "Channel"}'`
+  };
+}
+
+async function runDuplicateChannel(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const channel = findChannelForDoc(doc, op.channel || op.target, ctx.refs, { allowAny: false });
+  if (!channel) {
+    throw new Error("duplicateChannel target channel not found");
+  }
+
+  if (typeof channel.duplicate === "function") {
+    const duplicated = await channel.duplicate();
+    if (duplicated && op.name) {
+      duplicated.name = String(op.name);
+    }
+    return {
+      channel: serializeChannel(duplicated),
+      refValue: duplicated?.id !== undefined ? String(duplicated.id) : undefined,
+      detail: `Duplicated channel '${channel.name}'`
+    };
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "duplicate",
+        _target: [
+          {
+            _ref: "channel",
+            _name: String(channel.name)
+          }
+        ],
+        ...(op.name ? { name: String(op.name) } : {}),
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "duplicateChannel" }
+  );
+
+  const updated = findChannelForDoc(doc, op.name || channel.name, ctx.refs, { allowAny: false });
+  return {
+    channel: serializeChannel(updated),
+    refValue: updated?.id !== undefined ? String(updated.id) : undefined,
+    detail: `Duplicated channel '${channel.name}'`
+  };
+}
+
+async function runDeleteChannel(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const channel = findChannelForDoc(doc, op.channel || op.target, ctx.refs, { allowAny: false });
+  if (!channel) {
+    throw new Error("deleteChannel target channel not found");
+  }
+
+  if (typeof channel.remove === "function") {
+    await channel.remove();
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "delete",
+          _target: [
+            {
+              _ref: "channel",
+              _name: String(channel.name)
+            }
+          ],
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "deleteChannel" }
+    );
+  }
+
+  return {
+    channel: serializeChannel(channel),
+    refValue: channel.id !== undefined ? String(channel.id) : undefined,
+    detail: `Deleted channel '${channel.name}'`
+  };
+}
+
+async function runSaveSelection(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const selection = selectionForDoc(doc);
+  const channelTarget = resolveSelectionChannelTarget(op, ctx.refs);
+  const channel = findChannelForDoc(doc, channelTarget, ctx.refs, { allowAny: false });
+
+  if (typeof selection.saveTo === "function") {
+    if (channel) {
+      await selection.saveTo(channel);
+    } else {
+      await selection.saveTo(op.name ? String(op.name) : undefined);
+    }
+  } else if (typeof selection.save === "function") {
+    if (channel) {
+      await selection.save(channel);
+    } else {
+      await selection.save(op.name ? String(op.name) : undefined);
+    }
+  } else {
+    throw new Error("Selection save API unavailable in current Photoshop version");
+  }
+
+  const resolvedChannel = findChannelForDoc(doc, channelTarget || op.name, ctx.refs, { allowAny: false }) || channel;
+  return {
+    channel: serializeChannel(resolvedChannel),
+    refValue: resolvedChannel?.id !== undefined ? String(resolvedChannel.id) : undefined,
+    detail: `Saved selection to channel '${resolvedChannel?.name || op.name || "selection"}'`
+  };
+}
+
+async function runSaveSelectionTo(op, ctx) {
+  return runSaveSelection(op, ctx);
+}
+
+async function runLoadSelection(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const selection = selectionForDoc(doc);
+  const channelTarget = resolveSelectionChannelTarget(op, ctx.refs);
+  const channel = findChannelForDoc(doc, channelTarget, ctx.refs, { allowAny: false });
+  if (!channel) {
+    throw new Error("loadSelection target channel not found");
+  }
+
+  if (typeof selection.load !== "function") {
+    throw new Error("Selection load API unavailable in current Photoshop version");
+  }
+
+  await selection.load(channel, resolveSelectionType(op.mode), Boolean(op.invert));
+  return {
+    channel: serializeChannel(channel),
+    refValue: channel.id !== undefined ? String(channel.id) : undefined,
+    detail: `Loaded selection from channel '${channel.name}'`
+  };
+}
+
+async function runCreatePath(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const selection = selectionForDoc(doc);
+  if (typeof selection.makeWorkPath !== "function") {
+    throw new Error("Selection makeWorkPath API unavailable in current Photoshop version");
+  }
+  const tolerance = toFiniteNumber(op.tolerance, 2.0);
+  await selection.makeWorkPath(tolerance);
+  const created = listPathItemsForDoc(doc)[0] || null;
+  if (created && op.name) {
+    created.name = String(op.name);
+  }
+  return {
+    path: serializePathItem(created),
+    refValue: created?.id !== undefined ? String(created.id) : undefined,
+    detail: `Created path '${created?.name || "Work Path"}' from selection`
+  };
+}
+
+async function runDeletePath(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const pathItem = findPathForDoc(doc, op.path || op.target || op.pathName || op.pathId, ctx.refs, { allowAny: false });
+  if (!pathItem) {
+    throw new Error("deletePath target path not found");
+  }
+  if (typeof pathItem.remove !== "function") {
+    throw new Error("Path remove API unavailable in current Photoshop version");
+  }
+  await pathItem.remove();
+  return {
+    path: serializePathItem(pathItem),
+    refValue: pathItem.id !== undefined ? String(pathItem.id) : undefined,
+    detail: `Deleted path '${pathItem.name}'`
+  };
+}
+
+async function runMakeWorkPathFromSelection(op, ctx) {
+  return runCreatePath(op, ctx);
+}
+
+async function runMakeSelectionFromPath(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const pathItem = findPathForDoc(doc, op.path || op.target || op.pathName || op.pathId, ctx.refs, { allowAny: false });
+  if (!pathItem) {
+    throw new Error("makeSelectionFromPath target path not found");
+  }
+  if (typeof pathItem.makeSelection !== "function") {
+    throw new Error("Path makeSelection API unavailable in current Photoshop version");
+  }
+  await pathItem.makeSelection(toFiniteNumber(op.feather, 0), Boolean(op.antiAlias ?? true), resolveSelectionType(op.mode));
+  return {
+    path: serializePathItem(pathItem),
+    refValue: pathItem.id !== undefined ? String(pathItem.id) : undefined,
+    detail: `Made selection from path '${pathItem.name}'`
+  };
+}
+
+async function runFillPath(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const pathItem = findPathForDoc(doc, op.path || op.target || op.pathName || op.pathId, ctx.refs, { allowAny: false });
+  if (!pathItem) {
+    throw new Error("fillPath target path not found");
+  }
+  if (typeof pathItem.fillPath !== "function") {
+    throw new Error("Path fillPath API unavailable in current Photoshop version");
+  }
+  await pathItem.fillPath(
+    op.fillColor || op.color,
+    normalizeEnumLookup(constants?.ColorBlendMode, op.blendMode || "normal", op.blendMode || "normal"),
+    toFiniteNumber(op.opacity, 100),
+    Boolean(op.preserveTransparency ?? false),
+    toFiniteNumber(op.feather, 0),
+    Boolean(op.antiAlias ?? true)
+  );
+  return {
+    path: serializePathItem(pathItem),
+    refValue: pathItem.id !== undefined ? String(pathItem.id) : undefined,
+    detail: `Filled path '${pathItem.name}'`
+  };
+}
+
+async function runStrokePath(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const pathItem = findPathForDoc(doc, op.path || op.target || op.pathName || op.pathId, ctx.refs, { allowAny: false });
+  if (!pathItem) {
+    throw new Error("strokePath target path not found");
+  }
+  if (typeof pathItem.strokePath !== "function") {
+    throw new Error("Path strokePath API unavailable in current Photoshop version");
+  }
+  await pathItem.strokePath(op.tool || op.paintTool || "brush", Boolean(op.simulatePressure ?? false));
+  return {
+    path: serializePathItem(pathItem),
+    refValue: pathItem.id !== undefined ? String(pathItem.id) : undefined,
+    detail: `Stroked path '${pathItem.name}'`
+  };
+}
+
+async function runMakeClippingPath(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const pathItem = findPathForDoc(doc, op.path || op.target || op.pathName || op.pathId, ctx.refs, { allowAny: false });
+  if (!pathItem) {
+    throw new Error("makeClippingPath target path not found");
+  }
+  if (typeof pathItem.makeClippingPath !== "function") {
+    throw new Error("Path makeClippingPath API unavailable in current Photoshop version");
+  }
+  await pathItem.makeClippingPath(toFiniteNumber(op.flatness, 1));
+  return {
+    path: serializePathItem(pathItem),
+    refValue: pathItem.id !== undefined ? String(pathItem.id) : undefined,
+    detail: `Made clipping path '${pathItem.name}'`
+  };
+}
+
+function serializeGuide(guide) {
+  if (!guide) {
+    return null;
+  }
+  return {
+    direction: guide.direction || undefined,
+    coordinate: guide.coordinate || undefined
+  };
+}
+
+function serializeLayerComp(comp) {
+  if (!comp) {
+    return null;
+  }
+  return {
+    id: comp.id !== undefined ? String(comp.id) : undefined,
+    name: comp.name || undefined,
+    comment: comp.comment || undefined
+  };
+}
+
+async function runAddGuide(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  if (!doc.guides || typeof doc.guides.add !== "function") {
+    throw new Error("Guides API unavailable in current Photoshop version");
+  }
+
+  const position = toFiniteNumber(op.position ?? op.coordinate ?? op.value, undefined);
+  if (!Number.isFinite(position)) {
+    throw new Error("addGuide requires position/coordinate/value");
+  }
+  const direction = resolveGuideDirection(op.direction || op.orientation);
+  const guide = await doc.guides.add(direction, position);
+
+  return {
+    guide: serializeGuide(guide),
+    detail: `Added ${String(op.direction || op.orientation || "horizontal")} guide at ${position}`
+  };
+}
+
+async function runRemoveGuide(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const guides = Array.from(doc.guides || []);
+  if (guides.length === 0) {
+    throw new Error("No guides available to remove");
+  }
+
+  let guide = null;
+  if (Number.isFinite(Number(op.index))) {
+    guide = guides[Math.max(0, Math.min(guides.length - 1, Number(op.index)))];
+  } else {
+    guide = guides[guides.length - 1];
+  }
+
+  if (!guide || typeof guide.delete !== "function") {
+    throw new Error("Guide delete API unavailable in current Photoshop version");
+  }
+  await guide.delete();
+  return {
+    guide: serializeGuide(guide),
+    detail: "Removed guide"
+  };
+}
+
+async function runClearGuides(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  if (!doc.guides || typeof doc.guides.removeAll !== "function") {
+    throw new Error("Guides API unavailable in current Photoshop version");
+  }
+  await doc.guides.removeAll();
+  return {
+    detail: "Cleared guides"
+  };
+}
+
+async function runCreateLayerComp(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  if (!doc.layerComps || typeof doc.layerComps.add !== "function") {
+    throw new Error("Layer comps API unavailable in current Photoshop version");
+  }
+
+  const name = String(op.name || "Layer Comp");
+  const comment = op.comment !== undefined ? String(op.comment) : "";
+  let created = null;
+
+  try {
+    created = await doc.layerComps.add(
+      name,
+      comment,
+      op.captureAppearance !== false,
+      op.capturePosition !== false,
+      op.captureVisibility !== false
+    );
+  } catch {
+    created = await doc.layerComps.add(name);
+  }
+
+  return {
+    layerComp: serializeLayerComp(created),
+    refValue: created?.id !== undefined ? String(created.id) : undefined,
+    detail: `Created layer comp '${name}'`
+  };
+}
+
+async function runApplyLayerComp(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const comp = findLayerCompForDoc(doc, op.layerComp || op.target || op.name || op.layerCompName || op.layerCompId, ctx.refs, { allowAny: false });
+  if (!comp) {
+    throw new Error("applyLayerComp target not found");
+  }
+  if (typeof comp.apply !== "function") {
+    throw new Error("Layer comp apply API unavailable in current Photoshop version");
+  }
+  await comp.apply();
+  return {
+    layerComp: serializeLayerComp(comp),
+    refValue: comp.id !== undefined ? String(comp.id) : undefined,
+    detail: `Applied layer comp '${comp.name}'`
+  };
+}
+
+async function runRecaptureLayerComp(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const comp = findLayerCompForDoc(doc, op.layerComp || op.target || op.name || op.layerCompName || op.layerCompId, ctx.refs, { allowAny: false });
+  if (!comp) {
+    throw new Error("recaptureLayerComp target not found");
+  }
+  if (typeof comp.recapture !== "function") {
+    throw new Error("Layer comp recapture API unavailable in current Photoshop version");
+  }
+  await comp.recapture({
+    appearance: op.captureAppearance !== false,
+    position: op.capturePosition !== false,
+    visibility: op.captureVisibility !== false,
+    childLayerCompState: Boolean(op.childLayerCompState ?? false)
+  });
+  return {
+    layerComp: serializeLayerComp(comp),
+    refValue: comp.id !== undefined ? String(comp.id) : undefined,
+    detail: `Recaptured layer comp '${comp.name}'`
+  };
+}
+
+async function runDeleteLayerComp(op, ctx) {
+  const doc = findDocument(op.docRef || "active", ctx.refs) || activeDocumentOrThrow();
+  const comp = findLayerCompForDoc(doc, op.layerComp || op.target || op.name || op.layerCompName || op.layerCompId, ctx.refs, { allowAny: false });
+  if (!comp) {
+    throw new Error("deleteLayerComp target not found");
+  }
+  if (typeof comp.remove !== "function") {
+    throw new Error("Layer comp remove API unavailable in current Photoshop version");
+  }
+  await comp.remove();
+  return {
+    layerComp: serializeLayerComp(comp),
+    refValue: comp.id !== undefined ? String(comp.id) : undefined,
+    detail: `Deleted layer comp '${comp.name}'`
+  };
+}
+
+async function runPlayAction(op, ctx) {
+  const actionName = String(op.action || op.name || "").trim();
+  const actionSet = String(op.actionSet || op.set || op.setName || "").trim();
+  if (!actionName) {
+    throw new Error("playAction requires action/name");
+  }
+  if (!actionSet) {
+    throw new Error("playAction requires actionSet/set");
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "play",
+        _target: [
+          {
+            _ref: "action",
+            _name: actionName
+          },
+          {
+            _ref: "actionSet",
+            _name: actionSet
+          }
+        ],
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "playAction" }
+  );
+
+  return {
+    detail: `Played action '${actionSet}/${actionName}'`
+  };
+}
+
+async function runPlayActionSet(op, ctx) {
+  const actionSet = String(op.actionSet || op.set || op.name || "").trim();
+  if (!actionSet) {
+    throw new Error("playActionSet requires actionSet/set/name");
+  }
+  if (op.action) {
+    return runPlayAction(op, ctx);
+  }
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "play",
+        _target: [
+          {
+            _ref: "actionSet",
+            _name: actionSet
+          }
+        ],
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "playActionSet" }
+  );
+
+  return {
+    detail: `Played action set '${actionSet}'`
+  };
 }
 
 async function runSelectAll(op, ctx) {
@@ -4173,8 +5279,184 @@ function buildLayerEffectsDescriptor(op) {
     hasAnyEffect = true;
   }
 
+  if (op.colorOverlay && typeof op.colorOverlay === "object") {
+    const overlay = op.colorOverlay;
+    descriptor.solidFill = {
+      _obj: "solidFill",
+      enabled: overlay.enabled !== false,
+      present: true,
+      showInDialog: false,
+      mode: {
+        _enum: "blendMode",
+        _value: String(overlay.blendMode || "normal")
+      },
+      color: toRgbColorDescriptor(overlay.color || "#ffffff"),
+      opacity: unitPercent(toFiniteNumber(overlay.opacity, 100))
+    };
+    hasAnyEffect = true;
+  }
+
+  if (op.gradientOverlay && typeof op.gradientOverlay === "object") {
+    const overlay = op.gradientOverlay;
+    const gradientLayer = buildGradientLayerDescriptor({
+      gradient: overlay.gradient || {
+        from: overlay.from || overlay.colorFrom || "#ffffff",
+        to: overlay.to || overlay.colorTo || "#000000",
+        angle: overlay.angle,
+        scale: overlay.scale,
+        type: overlay.type
+      }
+    });
+    descriptor.gradientFill = {
+      _obj: "gradientFill",
+      enabled: overlay.enabled !== false,
+      present: true,
+      showInDialog: false,
+      mode: {
+        _enum: "blendMode",
+        _value: String(overlay.blendMode || "normal")
+      },
+      opacity: unitPercent(toFiniteNumber(overlay.opacity, 100)),
+      angle: gradientLayer.angle,
+      type: gradientLayer.type,
+      scale: gradientLayer.scale,
+      reverse: Boolean(overlay.reverse ?? false),
+      dither: Boolean(overlay.dither ?? false),
+      align: overlay.align !== false,
+      gradient: gradientLayer.gradient
+    };
+    hasAnyEffect = true;
+  }
+
+  if (op.innerShadow && typeof op.innerShadow === "object") {
+    const shadow = op.innerShadow;
+    descriptor.innerShadow = {
+      _obj: "innerShadow",
+      enabled: shadow.enabled !== false,
+      present: true,
+      showInDialog: false,
+      mode: {
+        _enum: "blendMode",
+        _value: String(shadow.blendMode || "multiply")
+      },
+      color: toRgbColorDescriptor(shadow.color || "#000000"),
+      opacity: unitPercent(toFiniteNumber(shadow.opacity, 40)),
+      useGlobalAngle: shadow.useGlobalAngle !== false,
+      localLightingAngle: unitAngle(toFiniteNumber(shadow.angle, 120)),
+      distance: unitPx(toFiniteNumber(shadow.distance, 5)),
+      chokeMatte: unitPx(toFiniteNumber(shadow.choke ?? shadow.spread, 0)),
+      blur: unitPx(toFiniteNumber(shadow.size ?? shadow.blur, 8)),
+      noise: unitPercent(toFiniteNumber(shadow.noise, 0))
+    };
+    hasAnyEffect = true;
+  }
+
+  if (op.outerGlow && typeof op.outerGlow === "object") {
+    const glow = op.outerGlow;
+    descriptor.outerGlow = {
+      _obj: "outerGlow",
+      enabled: glow.enabled !== false,
+      present: true,
+      showInDialog: false,
+      mode: {
+        _enum: "blendMode",
+        _value: String(glow.blendMode || "screen")
+      },
+      color: toRgbColorDescriptor(glow.color || "#ffffff"),
+      opacity: unitPercent(toFiniteNumber(glow.opacity, 75)),
+      blur: unitPx(toFiniteNumber(glow.size ?? glow.blur, 18)),
+      spread: unitPercent(toFiniteNumber(glow.spread, 0)),
+      noise: unitPercent(toFiniteNumber(glow.noise, 0))
+    };
+    hasAnyEffect = true;
+  }
+
+  if (op.innerGlow && typeof op.innerGlow === "object") {
+    const glow = op.innerGlow;
+    descriptor.innerGlow = {
+      _obj: "innerGlow",
+      enabled: glow.enabled !== false,
+      present: true,
+      showInDialog: false,
+      mode: {
+        _enum: "blendMode",
+        _value: String(glow.blendMode || "screen")
+      },
+      color: toRgbColorDescriptor(glow.color || "#ffffff"),
+      opacity: unitPercent(toFiniteNumber(glow.opacity, 75)),
+      blur: unitPx(toFiniteNumber(glow.size ?? glow.blur, 10)),
+      chokeMatte: unitPercent(toFiniteNumber(glow.choke ?? glow.spread, 0)),
+      noise: unitPercent(toFiniteNumber(glow.noise, 0))
+    };
+    hasAnyEffect = true;
+  }
+
+  if (op.bevelEmboss && typeof op.bevelEmboss === "object") {
+    const bevel = op.bevelEmboss;
+    descriptor.bevelEmboss = {
+      _obj: "bevelEmboss",
+      enabled: bevel.enabled !== false,
+      present: true,
+      showInDialog: false,
+      style: {
+        _enum: "bevelEmbossStyle",
+        _value: String(bevel.style || "innerBevel")
+      },
+      technique: {
+        _enum: "bevelEmbossTechnique",
+        _value: String(bevel.technique || "smooth")
+      },
+      depth: unitPercent(toFiniteNumber(bevel.depth, 100)),
+      direction: {
+        _enum: "stampInOut",
+        _value: String(bevel.direction || "stampIn")
+      },
+      blur: unitPx(toFiniteNumber(bevel.size ?? bevel.blur, 7)),
+      soften: unitPx(toFiniteNumber(bevel.soften, 0)),
+      angle: unitAngle(toFiniteNumber(bevel.angle, 120)),
+      useGlobalAngle: bevel.useGlobalAngle !== false,
+      altitude: unitAngle(toFiniteNumber(bevel.altitude, 30)),
+      highlightMode: {
+        _enum: "blendMode",
+        _value: String(bevel.highlightBlendMode || "screen")
+      },
+      highlightColor: toRgbColorDescriptor(bevel.highlightColor || "#ffffff"),
+      highlightOpacity: unitPercent(toFiniteNumber(bevel.highlightOpacity, 75)),
+      shadowMode: {
+        _enum: "blendMode",
+        _value: String(bevel.shadowBlendMode || "multiply")
+      },
+      shadowColor: toRgbColorDescriptor(bevel.shadowColor || "#000000"),
+      shadowOpacity: unitPercent(toFiniteNumber(bevel.shadowOpacity, 75))
+    };
+    hasAnyEffect = true;
+  }
+
+  if (op.satin && typeof op.satin === "object") {
+    const satin = op.satin;
+    descriptor.chromeFX = {
+      _obj: "chromeFX",
+      enabled: satin.enabled !== false,
+      present: true,
+      showInDialog: false,
+      mode: {
+        _enum: "blendMode",
+        _value: String(satin.blendMode || "multiply")
+      },
+      color: toRgbColorDescriptor(satin.color || "#000000"),
+      opacity: unitPercent(toFiniteNumber(satin.opacity, 50)),
+      localLightingAngle: unitAngle(toFiniteNumber(satin.angle, 19)),
+      distance: unitPx(toFiniteNumber(satin.distance, 11)),
+      blur: unitPx(toFiniteNumber(satin.size ?? satin.blur, 14)),
+      invert: Boolean(satin.invert ?? false)
+    };
+    hasAnyEffect = true;
+  }
+
   if (!hasAnyEffect) {
-    throw new Error("setLayerEffects requires effects object, clear=true, or supported effect fields (dropShadow/stroke)");
+    throw new Error(
+      "setLayerEffects requires effects object, clear=true, or supported effect fields (dropShadow/stroke/colorOverlay/gradientOverlay/innerShadow/innerGlow/outerGlow/bevelEmboss/satin)"
+    );
   }
 
   return descriptor;
@@ -4217,9 +5499,105 @@ async function runSetLayerEffects(op, ctx) {
   };
 }
 
+const ADJUSTMENT_KIND_ALIASES = new Map([
+  ["levels", "levels"],
+  ["curves", "curves"],
+  ["huesaturation", "hueSaturation"],
+  ["huesat", "hueSaturation"],
+  ["hue-sat", "hueSaturation"],
+  ["brightnesscontrast", "brightnessContrast"],
+  ["brightness", "brightnessContrast"],
+  ["vibrance", "vibrance"],
+  ["colorbalance", "colorBalance"],
+  ["blackandwhite", "blackAndWhite"],
+  ["blackwhite", "blackAndWhite"],
+  ["channelmixer", "channelMixer"],
+  ["exposure", "exposure"],
+  ["photofilter", "photoFilter"],
+  ["gradientmap", "gradientMap"],
+  ["invert", "invert"],
+  ["posterize", "posterize"],
+  ["threshold", "threshold"],
+  ["selectivecolor", "selectiveColor"]
+]);
+
+function normalizeAdjustmentKind(rawKind) {
+  const token = normalizeLookupToken(rawKind);
+  if (!token) {
+    return "levels";
+  }
+  return ADJUSTMENT_KIND_ALIASES.get(token) || String(rawKind);
+}
+
+function stripAdjustmentControlFields(source) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return {};
+  }
+  const out = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (
+      key === "op" ||
+      key === "target" ||
+      key === "docRef" ||
+      key === "ref" ||
+      key === "refId" ||
+      key === "as" ||
+      key === "outputRef" ||
+      key === "storeAs" ||
+      key === "idRef" ||
+      key === "onError" ||
+      key === "name" ||
+      key === "kind" ||
+      key === "type" ||
+      key === "adjustment" ||
+      key === "settings"
+    ) {
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+function resolveAdjustmentDescriptor(op) {
+  const adjustmentValue = op?.adjustment;
+  if (adjustmentValue && typeof adjustmentValue === "object" && !Array.isArray(adjustmentValue) && adjustmentValue._obj) {
+    return cloneSerializable(adjustmentValue);
+  }
+
+  const settingsFromAdjustment =
+    adjustmentValue && typeof adjustmentValue === "object" && !Array.isArray(adjustmentValue)
+      ? cloneSerializable(adjustmentValue)
+      : {};
+  const settingsFromOp = stripAdjustmentControlFields(op);
+  const explicitSettings = op?.settings && typeof op.settings === "object" && !Array.isArray(op.settings) ? cloneSerializable(op.settings) : {};
+
+  const kindRaw =
+    op?.kind ||
+    op?.type ||
+    (typeof adjustmentValue === "string" ? adjustmentValue : undefined) ||
+    settingsFromAdjustment?.kind ||
+    settingsFromAdjustment?.type ||
+    "levels";
+  const kind = normalizeAdjustmentKind(kindRaw);
+
+  delete settingsFromAdjustment.kind;
+  delete settingsFromAdjustment.type;
+
+  const settings = {
+    ...settingsFromOp,
+    ...settingsFromAdjustment,
+    ...explicitSettings
+  };
+
+  return {
+    _obj: kind,
+    ...settings
+  };
+}
+
 async function runCreateAdjustmentLayer(op, ctx) {
-  const adjustment = String(op.adjustment || op.type || "levels").toLowerCase();
-  const makeObj = adjustment === "curves" ? "curves" : adjustment === "huesaturation" || adjustment === "hue-sat" ? "hueSaturation" : "levels";
+  const adjustmentDescriptor = resolveAdjustmentDescriptor(op);
 
   await runBatchPlay(
     [
@@ -4233,7 +5611,7 @@ async function runCreateAdjustmentLayer(op, ctx) {
         using: {
           _obj: "adjustmentLayer",
           type: {
-            _obj: makeObj
+            ...adjustmentDescriptor
           }
         },
         _options: {
@@ -4253,7 +5631,45 @@ async function runCreateAdjustmentLayer(op, ctx) {
   return {
     layer: serializeLayer(layer),
     refValue: layer ? buildLayerRefValue(layer) : undefined,
-    detail: `Created adjustment layer (${makeObj})`
+    detail: `Created adjustment layer (${adjustmentDescriptor._obj || "custom"})`
+  };
+}
+
+async function runSetAdjustmentLayer(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const adjustmentDescriptor = resolveAdjustmentDescriptor(op);
+  await selectLayer(layer);
+
+  await runBatchPlay(
+    [
+      {
+        _obj: "set",
+        _target: [
+          {
+            _ref: "adjustmentLayer",
+            _enum: "ordinal",
+            _value: "targetEnum"
+          }
+        ],
+        to: {
+          _obj: "adjustmentLayer",
+          type: {
+            ...adjustmentDescriptor
+          }
+        },
+        _options: {
+          dialogOptions: "dontDisplay"
+        }
+      }
+    ],
+    undefined,
+    { op: "setAdjustmentLayer" }
+  );
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Updated adjustment layer '${layer.name}' (${adjustmentDescriptor._obj || "custom"})`
   };
 }
 
@@ -4360,6 +5776,254 @@ async function runApplyBlur(op, ctx) {
   };
 }
 
+async function runApplyMotionBlur(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const angle = toFiniteNumber(op.angle, undefined);
+  const radius = toFiniteNumber(op.radius ?? op.distance, undefined);
+  if (!Number.isFinite(angle) || !Number.isFinite(radius)) {
+    throw new Error("applyMotionBlur requires angle and radius");
+  }
+
+  await selectLayer(layer);
+  if (typeof layer.applyMotionBlur === "function") {
+    await layer.applyMotionBlur(angle, radius);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "motionBlur",
+          angle: unitAngle(angle),
+          radius: unitPx(radius),
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applyMotionBlur" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied Motion Blur to '${layer.name}'`
+  };
+}
+
+async function runApplySmartBlur(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const radius = toFiniteNumber(op.radius, undefined);
+  const threshold = toFiniteNumber(op.threshold, undefined);
+  if (!Number.isFinite(radius) || !Number.isFinite(threshold)) {
+    throw new Error("applySmartBlur requires radius and threshold");
+  }
+
+  const quality = String(op.quality || "medium");
+  const mode = String(op.mode || "normal");
+
+  await selectLayer(layer);
+  if (typeof layer.applySmartBlur === "function") {
+    await layer.applySmartBlur(radius, threshold, quality, mode);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "smartBlur",
+          radius: unitPx(radius),
+          threshold: unitPx(threshold),
+          blurQuality: {
+            _enum: "blurQuality",
+            _value: quality
+          },
+          mode: {
+            _enum: "smartBlurMode",
+            _value: mode
+          },
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applySmartBlur" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied Smart Blur to '${layer.name}'`
+  };
+}
+
+async function runApplyHighPass(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const radius = toFiniteNumber(op.radius, undefined);
+  if (!Number.isFinite(radius)) {
+    throw new Error("applyHighPass requires radius");
+  }
+
+  await selectLayer(layer);
+  if (typeof layer.applyHighPass === "function") {
+    await layer.applyHighPass(radius);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "highPass",
+          radius: unitPx(radius),
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applyHighPass" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied High Pass to '${layer.name}'`
+  };
+}
+
+async function runApplyMedianNoise(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const radius = toFiniteNumber(op.radius, undefined);
+  if (!Number.isFinite(radius)) {
+    throw new Error("applyMedianNoise requires radius");
+  }
+
+  await selectLayer(layer);
+  if (typeof layer.applyMedianNoise === "function") {
+    await layer.applyMedianNoise(radius);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "median",
+          radius: unitPx(radius),
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applyMedianNoise" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied Median filter to '${layer.name}'`
+  };
+}
+
+async function runApplyMinimum(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const radius = toFiniteNumber(op.radius, undefined);
+  if (!Number.isFinite(radius)) {
+    throw new Error("applyMinimum requires radius");
+  }
+
+  await selectLayer(layer);
+  if (typeof layer.applyMinimum === "function") {
+    await layer.applyMinimum(radius);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "minimum",
+          radius: unitPx(radius),
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applyMinimum" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied Minimum filter to '${layer.name}'`
+  };
+}
+
+async function runApplyMaximum(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const radius = toFiniteNumber(op.radius, undefined);
+  if (!Number.isFinite(radius)) {
+    throw new Error("applyMaximum requires radius");
+  }
+
+  await selectLayer(layer);
+  if (typeof layer.applyMaximum === "function") {
+    await layer.applyMaximum(radius);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "maximum",
+          radius: unitPx(radius),
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applyMaximum" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied Maximum filter to '${layer.name}'`
+  };
+}
+
+async function runApplyDustAndScratches(op, ctx) {
+  const layer = requireLayerTarget(op, ctx.refs);
+  const radius = toFiniteNumber(op.radius, undefined);
+  const threshold = toFiniteNumber(op.threshold, undefined);
+  if (!Number.isFinite(radius) || !Number.isFinite(threshold)) {
+    throw new Error("applyDustAndScratches requires radius and threshold");
+  }
+
+  await selectLayer(layer);
+  if (typeof layer.applyDustAndScratches === "function") {
+    await layer.applyDustAndScratches(radius, threshold);
+  } else {
+    await runBatchPlay(
+      [
+        {
+          _obj: "dustAndScratches",
+          radius: unitPx(radius),
+          threshold: unitPx(threshold),
+          _options: {
+            dialogOptions: "dontDisplay"
+          }
+        }
+      ],
+      undefined,
+      { op: "applyDustAndScratches" }
+    );
+  }
+
+  return {
+    layer: serializeLayer(layer),
+    refValue: buildLayerRefValue(layer),
+    detail: `Applied Dust & Scratches to '${layer.name}'`
+  };
+}
+
 async function runApplyFilter(op, ctx) {
   const filter = String(op.filter || op.kind || "").toLowerCase();
   if (!filter) {
@@ -4380,6 +6044,27 @@ async function runApplyFilter(op, ctx) {
   }
   if (filter === "blur") {
     return runApplyBlur(op, ctx);
+  }
+  if (filter === "motionblur" || filter === "motion") {
+    return runApplyMotionBlur(op, ctx);
+  }
+  if (filter === "smartblur" || filter === "smart") {
+    return runApplySmartBlur(op, ctx);
+  }
+  if (filter === "highpass") {
+    return runApplyHighPass(op, ctx);
+  }
+  if (filter === "median" || filter === "mediannoise") {
+    return runApplyMedianNoise(op, ctx);
+  }
+  if (filter === "minimum") {
+    return runApplyMinimum(op, ctx);
+  }
+  if (filter === "maximum") {
+    return runApplyMaximum(op, ctx);
+  }
+  if (filter === "dustandscratches" || filter === "dustscratch") {
+    return runApplyDustAndScratches(op, ctx);
   }
 
   throw new Error(`Unsupported applyFilter filter '${filter}'`);
@@ -5228,6 +6913,12 @@ function registerOperations() {
   registerOp(["mergeVisible", "mergeVisibleLayers", "document.mergeVisibleLayers"], runMergeVisible);
   registerOp(["trimDocument", "document.trim"], runTrimDocument);
   registerOp(["rotateDocument", "document.rotate"], runRotateDocument);
+  registerOp(["changeDocumentMode", "document.changeMode"], runChangeDocumentMode);
+  registerOp(["convertColorProfile", "document.convertProfile"], runConvertColorProfile);
+  registerOp(["calculations", "document.calculations"], runCalculations);
+  registerOp(["applyImage", "document.applyImage"], runApplyImage);
+  registerOp(["splitChannels", "document.splitChannels"], runSplitChannels);
+  registerOp(["sampleColor", "document.sampleColor"], runSampleColor);
 
   registerOp(["createLayer", "layer.create"], runCreateLayer);
   registerOp(["createPixelLayer", "layer.createPixel"], runCreatePixelLayer);
@@ -5252,6 +6943,10 @@ function registerOperations() {
   registerOp(["rasterizeLayer", "layer.rasterize"], runRasterizeLayer);
   registerOp(["linkLayers", "layer.link"], runLinkLayers);
   registerOp(["unlinkLayer", "layer.unlink"], runUnlinkLayer);
+  registerOp(["createLayerComp", "layerComp.create"], runCreateLayerComp);
+  registerOp(["applyLayerComp", "layerComp.apply"], runApplyLayerComp);
+  registerOp(["recaptureLayerComp", "layerComp.recapture"], runRecaptureLayerComp);
+  registerOp(["deleteLayerComp", "layerComp.delete", "layerComp.remove"], runDeleteLayerComp);
 
   registerOp(["transformLayer", "layer.transform"], runTransformLayer);
   registerOp(["alignLayers", "layer.align"], runAlignLayers);
@@ -5270,6 +6965,9 @@ function registerOperations() {
 
   registerOp(["selectAll", "selection.selectAll"], runSelectAll);
   registerOp(["deselect", "selection.deselect"], runDeselect);
+  registerOp(["addGuide", "guide.add"], runAddGuide);
+  registerOp(["removeGuide", "guide.remove", "guide.delete"], runRemoveGuide);
+  registerOp(["clearGuides", "guide.clear", "guide.removeAll"], runClearGuides);
   registerOp(["inverseSelection", "invertSelection", "selection.inverse"], runInverseSelection);
   registerOp(["featherSelection", "selection.feather"], runFeatherSelection);
   registerOp(["expandSelection", "selection.expand"], runExpandSelection);
@@ -5280,6 +6978,19 @@ function registerOperations() {
   registerOp(["selectEllipse", "selection.selectEllipse"], runSelectEllipse);
   registerOp(["selectPolygon", "selection.selectPolygon"], runSelectPolygon);
   registerOp(["selectLayerPixels", "selection.loadLayerPixels"], runSelectLayerPixels);
+  registerOp(["createChannel", "channel.create"], runCreateChannel);
+  registerOp(["duplicateChannel", "channel.duplicate"], runDuplicateChannel);
+  registerOp(["deleteChannel", "channel.delete", "channel.remove"], runDeleteChannel);
+  registerOp(["saveSelection", "selection.save"], runSaveSelection);
+  registerOp(["saveSelectionTo", "selection.saveTo"], runSaveSelectionTo);
+  registerOp(["loadSelection", "selection.load"], runLoadSelection);
+  registerOp(["createPath", "path.create"], runCreatePath);
+  registerOp(["deletePath", "path.delete", "path.remove"], runDeletePath);
+  registerOp(["makeWorkPathFromSelection", "path.makeWorkPath", "selection.makeWorkPath"], runMakeWorkPathFromSelection);
+  registerOp(["makeSelectionFromPath", "path.makeSelection"], runMakeSelectionFromPath);
+  registerOp(["fillPath", "path.fill"], runFillPath);
+  registerOp(["strokePath", "path.stroke"], runStrokePath);
+  registerOp(["makeClippingPath", "path.makeClippingPath"], runMakeClippingPath);
   registerOp(["setSelection", "selection.set"], runSetSelection);
   registerOp(["modifySelection", "selection.modify"], runModifySelection);
   registerOp(["createLayerMask", "layerMask.create"], runCreateLayerMask);
@@ -5292,12 +7003,20 @@ function registerOperations() {
   registerOp(["setLayerEffects", "layer.effects"], runSetLayerEffects);
 
   registerOp(["createAdjustmentLayer", "adjustment.create"], runCreateAdjustmentLayer);
+  registerOp(["setAdjustmentLayer", "adjustment.set"], runSetAdjustmentLayer);
   registerOp(["applyFilter", "filter.apply"], runApplyFilter);
   registerOp(["applyGaussianBlur", "filter.gaussianBlur"], runApplyGaussianBlur);
   registerOp(["applyAddNoise", "filter.addNoise", "applyNoise", "filter.noise"], runApplyAddNoise);
   registerOp(["applyUnsharpMask", "filter.unsharpMask"], runApplyUnsharpMask);
   registerOp(["applySharpen", "filter.sharpen"], runApplySharpen);
   registerOp(["applyBlur", "filter.blur"], runApplyBlur);
+  registerOp(["applyMotionBlur", "filter.motionBlur"], runApplyMotionBlur);
+  registerOp(["applySmartBlur", "filter.smartBlur"], runApplySmartBlur);
+  registerOp(["applyHighPass", "filter.highPass"], runApplyHighPass);
+  registerOp(["applyMedianNoise", "filter.median"], runApplyMedianNoise);
+  registerOp(["applyMinimum", "filter.minimum"], runApplyMinimum);
+  registerOp(["applyMaximum", "filter.maximum"], runApplyMaximum);
+  registerOp(["applyDustAndScratches", "filter.dustAndScratches"], runApplyDustAndScratches);
 
   registerOp(["createTextLayer", "text.create"], runCreateTextLayer);
   registerOp(["setText", "text.set"], runSetText);
@@ -5308,6 +7027,15 @@ function registerOperations() {
   registerOp(["exportDocument", "document.exportDocument"], runExportDocument);
   registerOp(["exportLayer", "document.exportLayer"], runExportLayer);
   registerOp(["exportLayersByName", "document.exportLayersByName"], runExportLayersByName);
+  registerOp(["getPixels", "imaging.getPixels"], runGetPixels);
+  registerOp(["putPixels", "imaging.putPixels"], runPutPixels);
+  registerOp(["getSelectionPixels", "imaging.getSelection"], runGetSelectionPixels);
+  registerOp(["putSelectionPixels", "imaging.putSelection"], runPutSelectionPixels);
+  registerOp(["getLayerMaskPixels", "imaging.getLayerMask"], runGetLayerMaskPixels);
+  registerOp(["putLayerMaskPixels", "imaging.putLayerMask"], runPutLayerMaskPixels);
+  registerOp(["encodeImageData", "imaging.encodeImageData"], runEncodeImageData);
+  registerOp(["playAction", "action.play"], runPlayAction);
+  registerOp(["playActionSet", "actionSet.play"], runPlayActionSet);
   registerOp(["batchPlay", "action.batchPlay"], runBatchPlayOp);
 }
 
@@ -5644,6 +7372,18 @@ function validateResolvedOperation(opName, op, refs) {
     throw new Error(`${opName} requires text or contents`);
   }
 
+  if (opName === "changeDocumentMode" && !opHasAnyField(op, ["mode", "to", "newMode"])) {
+    throw new Error("changeDocumentMode requires mode/to/newMode");
+  }
+
+  if (opName === "convertColorProfile" && !opHasAnyField(op, ["profile", "name", "colorProfile"])) {
+    throw new Error("convertColorProfile requires profile/name/colorProfile");
+  }
+
+  if (opName === "sampleColor" && !opHasAnyField(op, ["x", "y", "position"])) {
+    throw new Error("sampleColor requires x/y or position");
+  }
+
   if (
     opName === "setTextStyle" &&
     !opHasAnyField(op, [
@@ -5705,12 +7445,81 @@ function validateResolvedOperation(opName, op, refs) {
     throw new Error("applyAddNoise requires amount");
   }
 
-  if (opName === "setLayerEffects" && !opHasAnyField(op, ["effects", "dropShadow", "stroke", "clear"])) {
-    throw new Error("setLayerEffects requires effects, dropShadow/stroke, or clear=true");
+  if (
+    opName === "setLayerEffects" &&
+    !opHasAnyField(op, [
+      "effects",
+      "dropShadow",
+      "stroke",
+      "colorOverlay",
+      "gradientOverlay",
+      "innerShadow",
+      "innerGlow",
+      "outerGlow",
+      "bevelEmboss",
+      "satin",
+      "clear"
+    ])
+  ) {
+    throw new Error(
+      "setLayerEffects requires effects or at least one effect field (dropShadow/stroke/colorOverlay/gradientOverlay/innerShadow/innerGlow/outerGlow/bevelEmboss/satin), or clear=true"
+    );
+  }
+
+  if (opName === "setAdjustmentLayer" && !opHasAnyField(op, ["adjustment", "kind", "type", "settings"])) {
+    throw new Error("setAdjustmentLayer requires adjustment descriptor or kind/type/settings");
   }
 
   if ((opName === "selectRectangle" || opName === "selectEllipse") && (!op?.bounds || typeof op.bounds !== "object")) {
     throw new Error(`${opName} requires bounds`);
+  }
+
+  if (
+    (opName === "duplicateChannel" || opName === "deleteChannel" || opName === "loadSelection") &&
+    !opHasAnyField(op, ["channel", "target", "channelName", "channelId", "name"])
+  ) {
+    throw new Error(`${opName} requires channel/target/channelName/channelId`);
+  }
+
+  if (
+    (opName === "deletePath" ||
+      opName === "makeSelectionFromPath" ||
+      opName === "fillPath" ||
+      opName === "strokePath" ||
+      opName === "makeClippingPath") &&
+    !opHasAnyField(op, ["path", "target", "pathName", "pathId"])
+  ) {
+    throw new Error(`${opName} requires path/target/pathName/pathId`);
+  }
+
+  if (opName === "addGuide" && !opHasAnyField(op, ["position", "coordinate", "value"])) {
+    throw new Error("addGuide requires position/coordinate/value");
+  }
+
+  if (
+    (opName === "applyLayerComp" || opName === "recaptureLayerComp" || opName === "deleteLayerComp") &&
+    !opHasAnyField(op, ["layerComp", "target", "name", "layerCompName", "layerCompId"])
+  ) {
+    throw new Error(`${opName} requires layerComp/target/name/layerCompName/layerCompId`);
+  }
+
+  if (opName === "playAction" && (!opHasAnyField(op, ["action", "name"]) || !opHasAnyField(op, ["actionSet", "set", "setName"]))) {
+    throw new Error("playAction requires action/name and actionSet/set");
+  }
+
+  if (opName === "playActionSet" && !opHasAnyField(op, ["actionSet", "set", "name"])) {
+    throw new Error("playActionSet requires actionSet/set/name");
+  }
+
+  if ((opName === "getLayerMaskPixels" || opName === "putLayerMaskPixels") && !opHasAnyField(op, ["target"])) {
+    throw new Error(`${opName} requires target layer`);
+  }
+
+  if (
+    (opName === "putPixels" || opName === "putSelectionPixels" || opName === "putLayerMaskPixels" || opName === "encodeImageData") &&
+    !opHasAnyField(op, ["imageData", "pixels"])
+  ) {
+    throw new Error(`${opName} requires imageData/pixels`);
   }
 
   if (opName === "selectPolygon" && (!Array.isArray(op?.points) || op.points.length < 3)) {

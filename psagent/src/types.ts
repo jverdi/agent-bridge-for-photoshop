@@ -361,6 +361,10 @@ export type PhotoshopOperation =
       format: "png" | "jpg";
       outputDir: string;
       [key: string]: unknown;
+    })
+  | (OperationControl & {
+      op: string;
+      [key: string]: any;
     });
 
 export interface OperationEnvelope {

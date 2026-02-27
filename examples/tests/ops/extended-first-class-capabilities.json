@@ -1,0 +1,300 @@
+{
+  "transactionId": "extended-capabilities-001",
+  "doc": {
+    "ref": "active"
+  },
+  "ops": [
+    {
+      "op": "createDocument",
+      "name": "Extended Ops Doc",
+      "width": 1000,
+      "height": 1000,
+      "ref": "docA"
+    },
+    {
+      "op": "createLayer",
+      "name": "Base",
+      "ref": "base"
+    },
+    {
+      "op": "changeDocumentMode",
+      "mode": "grayscale"
+    },
+    {
+      "op": "changeDocumentMode",
+      "mode": "rgb"
+    },
+    {
+      "op": "convertColorProfile",
+      "profile": "sRGB IEC61966-2.1"
+    },
+    {
+      "op": "calculations",
+      "options": {
+        "result": "newChannel"
+      }
+    },
+    {
+      "op": "applyImage",
+      "targetLayer": "$base",
+      "options": {
+        "blendMode": "multiply",
+        "opacity": 60
+      }
+    },
+    {
+      "op": "sampleColor",
+      "x": 100,
+      "y": 200
+    },
+    {
+      "op": "createLayerComp",
+      "name": "Comp A",
+      "ref": "compA"
+    },
+    {
+      "op": "applyLayerComp",
+      "layerComp": "$compA"
+    },
+    {
+      "op": "recaptureLayerComp",
+      "layerComp": "$compA",
+      "comment": "updated"
+    },
+    {
+      "op": "deleteLayerComp",
+      "layerComp": "$compA"
+    },
+    {
+      "op": "createAdjustmentLayer",
+      "name": "Grade",
+      "type": "brightnessContrast",
+      "adjustment": {
+        "brightness": 10,
+        "contrast": 5
+      },
+      "ref": "adj"
+    },
+    {
+      "op": "setAdjustmentLayer",
+      "target": "$adj",
+      "type": "hueSaturation",
+      "adjustment": {
+        "masterHue": 5,
+        "masterSaturation": -8
+      }
+    },
+    {
+      "op": "applyMotionBlur",
+      "target": "$base",
+      "angle": 20,
+      "distance": 12
+    },
+    {
+      "op": "applySmartBlur",
+      "target": "$base",
+      "radius": 3,
+      "threshold": 15,
+      "quality": "medium",
+      "mode": "normal"
+    },
+    {
+      "op": "applyHighPass",
+      "target": "$base",
+      "radius": 2
+    },
+    {
+      "op": "applyMedianNoise",
+      "target": "$base",
+      "radius": 2
+    },
+    {
+      "op": "applyMinimum",
+      "target": "$base",
+      "radius": 1,
+      "preserveShape": "roundness"
+    },
+    {
+      "op": "applyMaximum",
+      "target": "$base",
+      "radius": 1,
+      "preserveShape": "roundness"
+    },
+    {
+      "op": "applyDustAndScratches",
+      "target": "$base",
+      "radius": 2,
+      "threshold": 1
+    },
+    {
+      "op": "setSelection",
+      "shape": "rect",
+      "x": 50,
+      "y": 50,
+      "width": 200,
+      "height": 200
+    },
+    {
+      "op": "createChannel",
+      "name": "Alpha 1",
+      "ref": "chan1"
+    },
+    {
+      "op": "duplicateChannel",
+      "channel": "$chan1",
+      "name": "Alpha 1 Copy",
+      "ref": "chan2"
+    },
+    {
+      "op": "saveSelection",
+      "ref": "savedSelectionChannel"
+    },
+    {
+      "op": "saveSelectionTo",
+      "channel": "$chan1"
+    },
+    {
+      "op": "loadSelection",
+      "channel": "$chan1"
+    },
+    {
+      "op": "deleteChannel",
+      "channel": "$chan2"
+    },
+    {
+      "op": "createPath",
+      "name": "Path A",
+      "ref": "pathA"
+    },
+    {
+      "op": "makeSelectionFromPath",
+      "path": "$pathA"
+    },
+    {
+      "op": "fillPath",
+      "path": "$pathA",
+      "color": "#ff0000"
+    },
+    {
+      "op": "strokePath",
+      "path": "$pathA",
+      "tool": "brush",
+      "color": "#00ff00",
+      "width": 2
+    },
+    {
+      "op": "makeClippingPath",
+      "path": "$pathA",
+      "flatness": 1
+    },
+    {
+      "op": "makeWorkPathFromSelection",
+      "name": "Work Path 2",
+      "ref": "pathWork"
+    },
+    {
+      "op": "deletePath",
+      "path": "$pathWork"
+    },
+    {
+      "op": "deletePath",
+      "path": "$pathA"
+    },
+    {
+      "op": "addGuide",
+      "direction": "horizontal",
+      "position": 120,
+      "ref": "guide1"
+    },
+    {
+      "op": "addGuide",
+      "direction": "vertical",
+      "position": 80,
+      "ref": "guide2"
+    },
+    {
+      "op": "removeGuide",
+      "index": 0
+    },
+    {
+      "op": "clearGuides"
+    },
+    {
+      "op": "getPixels",
+      "target": "$base",
+      "includeData": false,
+      "ref": "pixDoc"
+    },
+    {
+      "op": "getSelectionPixels",
+      "includeData": false,
+      "ref": "pixSelection"
+    },
+    {
+      "op": "getLayerMaskPixels",
+      "target": "$base",
+      "includeData": false,
+      "ref": "pixMask"
+    },
+    {
+      "op": "putPixels",
+      "imageData": {
+        "data": [0, 0, 0, 255],
+        "width": 1,
+        "height": 1,
+        "channels": 4
+      }
+    },
+    {
+      "op": "putSelectionPixels",
+      "imageData": {
+        "data": [255, 0, 0, 255],
+        "width": 1,
+        "height": 1,
+        "channels": 4
+      }
+    },
+    {
+      "op": "putLayerMaskPixels",
+      "target": "$base",
+      "imageData": {
+        "data": [255],
+        "width": 1,
+        "height": 1,
+        "channels": 1
+      }
+    },
+    {
+      "op": "encodeImageData",
+      "imageData": {
+        "data": [255, 255, 255, 255],
+        "width": 1,
+        "height": 1,
+        "channels": 4
+      },
+      "format": "png",
+      "ref": "encodedImage"
+    },
+    {
+      "op": "playAction",
+      "action": "MyAction",
+      "actionSet": "MySet"
+    },
+    {
+      "op": "playActionSet",
+      "actionSet": "MySet"
+    },
+    {
+      "op": "splitChannels",
+      "ref": "splitDoc"
+    },
+    {
+      "op": "closeDocument",
+      "save": false
+    }
+  ],
+  "safety": {
+    "dryRun": false,
+    "onError": "abort"
+  }
+}

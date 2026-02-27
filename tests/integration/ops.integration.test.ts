@@ -67,6 +67,57 @@ const expectedPlannedOps = [
   "batchPlay"
 ].sort();
 
+const expectedExtendedOps = [
+  "createDocument",
+  "createLayer",
+  "changeDocumentMode",
+  "convertColorProfile",
+  "calculations",
+  "applyImage",
+  "sampleColor",
+  "createLayerComp",
+  "applyLayerComp",
+  "recaptureLayerComp",
+  "deleteLayerComp",
+  "createAdjustmentLayer",
+  "setAdjustmentLayer",
+  "applyMotionBlur",
+  "applySmartBlur",
+  "applyHighPass",
+  "applyMedianNoise",
+  "applyMinimum",
+  "applyMaximum",
+  "applyDustAndScratches",
+  "setSelection",
+  "createChannel",
+  "duplicateChannel",
+  "saveSelection",
+  "saveSelectionTo",
+  "loadSelection",
+  "deleteChannel",
+  "createPath",
+  "makeSelectionFromPath",
+  "fillPath",
+  "strokePath",
+  "makeClippingPath",
+  "makeWorkPathFromSelection",
+  "deletePath",
+  "addGuide",
+  "removeGuide",
+  "clearGuides",
+  "getPixels",
+  "getSelectionPixels",
+  "getLayerMaskPixels",
+  "putPixels",
+  "putSelectionPixels",
+  "putLayerMaskPixels",
+  "encodeImageData",
+  "playAction",
+  "playActionSet",
+  "splitChannels",
+  "closeDocument"
+].sort();
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -278,6 +329,38 @@ test("applies full planned first-class capability payload through CLI -> adapter
     assertSuccess(events, "events tail full-planned-capabilities");
     const eventMessages = (events.json as any).events.map((event: any) => String(event.message));
     assert.ok(eventMessages.some((message: string) => message.includes("ops.apply tx=planned-capabilities-001")));
+  });
+});
+
+test("applies expanded first-class capability payload for new operation families", async () => {
+  await withHarness(async (harness) => {
+    const sessionStart = await harness.runJson(["session", "start"]);
+    assertSuccess(sessionStart, "session start");
+
+    const openDoc = await harness.runJson(["doc", "open", "./examples/tests/input.psd"]);
+    assertSuccess(openDoc, "doc open");
+
+    const payload = await readFixture("extended-first-class-capabilities.json");
+    const opNames = (payload.ops as Array<{ op: string }>).map((item) => item.op);
+    const uniqueNames = [...new Set(opNames)].sort();
+    assert.deepEqual(uniqueNames, expectedExtendedOps, "fixture must enumerate every newly added first-class operation");
+
+    const apply = await harness.runJson(["op", "apply", "-f", harness.fixturePath("extended-first-class-capabilities.json")]);
+    assertSuccess(apply, "op apply extended-first-class-capabilities");
+
+    const applyJson = apply.json as any;
+    assert.equal(applyJson.result.transactionId, "extended-capabilities-001");
+    assert.equal(applyJson.result.applied, payload.ops.length);
+    assert.equal(applyJson.result.failed ?? 0, 0);
+    assert.equal((applyJson.result.failures ?? []).length, 0);
+    assert.equal(Boolean(applyJson.result.aborted), false);
+
+    const refs = applyJson.result.refs ?? {};
+    assert.ok(refs.docA, "expected docA ref in apply result");
+    assert.ok(refs.base, "expected base ref in apply result");
+    assert.ok(refs.adj, "expected adj ref in apply result");
+    assert.ok(refs.pathA, "expected pathA ref in apply result");
+    assert.ok(refs.splitDoc, "expected splitDoc ref in apply result");
   });
 });
 

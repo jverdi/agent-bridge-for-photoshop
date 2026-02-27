@@ -181,6 +181,94 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `changeDocumentMode`
+
+- Aliases: `document.changeMode`
+- Required: `mode (or to/newMode)`
+- Supported args: `docRef`, `mode`, `newMode`, `target`, `to`
+
+```json
+{
+  "op": "changeDocumentMode",
+  "mode": "grayscale"
+}
+```
+
+### `convertColorProfile`
+
+- Aliases: `document.convertProfile`
+- Required: `profile (or name/colorProfile)`
+- Supported args: `blackPointCompensation`, `colorProfile`, `dither`, `docRef`, `intent`, `name`, `profile`, `target`
+
+```json
+{
+  "op": "convertColorProfile",
+  "profile": "Display P3",
+  "intent": "relativeColorimetric",
+  "blackPointCompensation": true
+}
+```
+
+### `calculations`
+
+- Aliases: `document.calculations`
+- Required: None
+- Supported args: `docRef`, `options`, `target`, plus calculation option fields
+
+```json
+{
+  "op": "calculations",
+  "options": {
+    "result": "newChannel"
+  }
+}
+```
+
+### `applyImage`
+
+- Aliases: `document.applyImage`
+- Required: None
+- Supported args: `docRef`, `options`, `target`, `targetLayer`, plus apply-image option fields
+
+```json
+{
+  "op": "applyImage",
+  "targetLayer": {
+    "layerName": "Hero"
+  },
+  "options": {
+    "blendMode": "multiply",
+    "opacity": 65
+  }
+}
+```
+
+### `splitChannels`
+
+- Aliases: `document.splitChannels`
+- Required: None
+- Supported args: `docRef`, `target`
+
+```json
+{
+  "op": "splitChannels"
+}
+```
+
+### `sampleColor`
+
+- Aliases: `document.sampleColor`
+- Required: `x/y (or position{x,y})`
+- Supported args: `docRef`, `position`, `target`, `x`, `y`
+
+```json
+{
+  "op": "sampleColor",
+  "x": 220,
+  "y": 340
+}
+```
+
 ### `flattenDocument`
 
 - Aliases: `flattenImage`, `document.flatten`
@@ -483,8 +571,8 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 ### `setLayerEffects`
 
 - Aliases: `layer.effects`
-- Required: `target (or active layer)` plus one of `effects`, `dropShadow`, `stroke`, or `clear: true`
-- Supported args: `clear`, `dropShadow`, `effects`, `scale`, `stroke`
+- Required: `target (or active layer)` plus one of `effects`, effect fields, or `clear: true`
+- Supported args: `bevelEmboss`, `clear`, `colorOverlay`, `dropShadow`, `effects`, `gradientOverlay`, `innerGlow`, `innerShadow`, `outerGlow`, `satin`, `scale`, `stroke`
 
 ```json
 {
@@ -600,6 +688,60 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "target": {
     "layerName": "Icon"
   }
+}
+```
+
+### `createLayerComp`
+
+- Aliases: `layerComp.create`
+- Required: None
+- Supported args: `captureAppearance`, `capturePosition`, `captureVisibility`, `comment`, `docRef`, `name`
+
+```json
+{
+  "op": "createLayerComp",
+  "name": "Hero Variant",
+  "comment": "Primary hero layout"
+}
+```
+
+### `applyLayerComp`
+
+- Aliases: `layerComp.apply`
+- Required: `layerComp target (name/id)`
+- Supported args: `docRef`, `layerComp`, `layerCompId`, `layerCompName`, `name`, `target`
+
+```json
+{
+  "op": "applyLayerComp",
+  "layerComp": "Hero Variant"
+}
+```
+
+### `recaptureLayerComp`
+
+- Aliases: `layerComp.recapture`
+- Required: `layerComp target (name/id)`
+- Supported args: `captureAppearance`, `capturePosition`, `captureVisibility`, `childLayerCompState`, `docRef`, `layerComp`, `layerCompId`, `layerCompName`, `name`, `target`
+
+```json
+{
+  "op": "recaptureLayerComp",
+  "layerComp": "Hero Variant",
+  "captureVisibility": true
+}
+```
+
+### `deleteLayerComp`
+
+- Aliases: `layerComp.delete`, `layerComp.remove`
+- Required: `layerComp target (name/id)`
+- Supported args: `docRef`, `layerComp`, `layerCompId`, `layerCompName`, `name`, `target`
+
+```json
+{
+  "op": "deleteLayerComp",
+  "layerComp": "Hero Variant"
 }
 ```
 
@@ -1013,6 +1155,223 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 }
 ```
 
+### `createChannel`
+
+- Aliases: `channel.create`
+- Required: None
+- Supported args: `docRef`, `name`
+
+```json
+{
+  "op": "createChannel",
+  "name": "Mask Alpha"
+}
+```
+
+### `duplicateChannel`
+
+- Aliases: `channel.duplicate`
+- Required: `channel/target`
+- Supported args: `channel`, `channelId`, `channelName`, `docRef`, `name`, `target`
+
+```json
+{
+  "op": "duplicateChannel",
+  "channel": "Mask Alpha",
+  "name": "Mask Alpha Copy"
+}
+```
+
+### `deleteChannel`
+
+- Aliases: `channel.delete`, `channel.remove`
+- Required: `channel/target`
+- Supported args: `channel`, `channelId`, `channelName`, `docRef`, `target`
+
+```json
+{
+  "op": "deleteChannel",
+  "channel": "Mask Alpha Copy"
+}
+```
+
+### `saveSelection`
+
+- Aliases: `selection.save`
+- Required: None
+- Supported args: `channel`, `channelId`, `channelName`, `docRef`, `name`, `target`
+
+```json
+{
+  "op": "saveSelection",
+  "name": "Saved Selection 1"
+}
+```
+
+### `saveSelectionTo`
+
+- Aliases: `selection.saveTo`
+- Required: None
+- Supported args: `channel`, `channelId`, `channelName`, `docRef`, `name`, `target`
+
+```json
+{
+  "op": "saveSelectionTo",
+  "channel": "Saved Selection 1"
+}
+```
+
+### `loadSelection`
+
+- Aliases: `selection.load`
+- Required: `channel/target`
+- Supported args: `channel`, `channelId`, `channelName`, `docRef`, `invert`, `mode`, `target`
+
+```json
+{
+  "op": "loadSelection",
+  "channel": "Saved Selection 1"
+}
+```
+
+### `createPath`
+
+- Aliases: `path.create`
+- Required: active selection
+- Supported args: `docRef`, `name`, `tolerance`
+- Notes: First-class `createPath` builds a work path from the current selection.
+
+```json
+{
+  "op": "createPath",
+  "name": "Subject Path",
+  "tolerance": 2
+}
+```
+
+### `deletePath`
+
+- Aliases: `path.delete`, `path.remove`
+- Required: `path/target`
+- Supported args: `docRef`, `path`, `pathId`, `pathName`, `target`
+
+```json
+{
+  "op": "deletePath",
+  "path": "Subject Path"
+}
+```
+
+### `makeWorkPathFromSelection`
+
+- Aliases: `path.makeWorkPath`, `selection.makeWorkPath`
+- Required: active selection
+- Supported args: `docRef`, `name`, `tolerance`
+
+```json
+{
+  "op": "makeWorkPathFromSelection",
+  "name": "Work Path",
+  "tolerance": 2
+}
+```
+
+### `makeSelectionFromPath`
+
+- Aliases: `path.makeSelection`
+- Required: `path/target`
+- Supported args: `antiAlias`, `docRef`, `feather`, `mode`, `path`, `pathId`, `pathName`, `target`
+
+```json
+{
+  "op": "makeSelectionFromPath",
+  "path": "Subject Path",
+  "mode": "replace"
+}
+```
+
+### `fillPath`
+
+- Aliases: `path.fill`
+- Required: `path/target`
+- Supported args: `antiAlias`, `blendMode`, `color`, `docRef`, `feather`, `fillColor`, `opacity`, `path`, `pathId`, `pathName`, `preserveTransparency`, `target`
+
+```json
+{
+  "op": "fillPath",
+  "path": "Subject Path",
+  "fillColor": "#22c55e",
+  "opacity": 90
+}
+```
+
+### `strokePath`
+
+- Aliases: `path.stroke`
+- Required: `path/target`
+- Supported args: `docRef`, `paintTool`, `path`, `pathId`, `pathName`, `simulatePressure`, `target`, `tool`
+
+```json
+{
+  "op": "strokePath",
+  "path": "Subject Path",
+  "tool": "brush"
+}
+```
+
+### `makeClippingPath`
+
+- Aliases: `path.makeClippingPath`
+- Required: `path/target`
+- Supported args: `docRef`, `flatness`, `path`, `pathId`, `pathName`, `target`
+
+```json
+{
+  "op": "makeClippingPath",
+  "path": "Subject Path",
+  "flatness": 1
+}
+```
+
+### `addGuide`
+
+- Aliases: `guide.add`
+- Required: `position/coordinate/value`
+- Supported args: `direction`, `docRef`, `orientation`, `position`, `coordinate`, `value`
+
+```json
+{
+  "op": "addGuide",
+  "direction": "vertical",
+  "position": 540
+}
+```
+
+### `removeGuide`
+
+- Aliases: `guide.remove`, `guide.delete`
+- Required: None
+- Supported args: `docRef`, `index`
+
+```json
+{
+  "op": "removeGuide",
+  "index": 0
+}
+```
+
+### `clearGuides`
+
+- Aliases: `guide.clear`, `guide.removeAll`
+- Required: None
+- Supported args: `docRef`
+
+```json
+{
+  "op": "clearGuides"
+}
+```
+
 ### `setSelection`
 
 - Aliases: `selection.set`
@@ -1159,14 +1518,39 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
 
 - Aliases: `adjustment.create`
 - Required: None (`levels` default when omitted)
-- Supported args: `adjustment`, `name`, `type`
-- Notes: `type`/`adjustment` currently select the adjustment kind; detailed numeric adjustment payload maps are not yet interpreted by the bridge.
+- Supported args: `adjustment`, `kind`, `name`, `settings`, `type`, plus adjustment fields
+- Notes: Pass either (a) `type`/`kind` + settings fields, (b) `adjustment` as a plain object (`{ "brightness": 10, ... }`), or (c) `adjustment` as a raw descriptor with `_obj`.
 
 ```json
 {
   "op": "createAdjustmentLayer",
-  "type": "levels",
+  "type": "brightnessContrast",
+  "adjustment": {
+    "brightness": 8,
+    "contrast": 12
+  },
   "name": "Grade"
+}
+```
+
+### `setAdjustmentLayer`
+
+- Aliases: `adjustment.set`
+- Required: `target (or active layer)` and adjustment descriptor or kind/settings
+- Supported args: `adjustment`, `kind`, `settings`, `target`, `type`, plus adjustment fields
+
+```json
+{
+  "op": "setAdjustmentLayer",
+  "target": {
+    "layerName": "Grade"
+  },
+  "type": "hueSaturation",
+  "adjustment": {
+    "masterHue": 8,
+    "masterSaturation": -10,
+    "masterLightness": 4
+  }
 }
 ```
 
@@ -1266,6 +1650,123 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "target": {
     "layerName": "Hero"
   }
+}
+```
+
+### `applyMotionBlur`
+
+- Aliases: `filter.motionBlur`
+- Required: `target (or active layer)`, `angle`, `radius`
+- Supported args: `angle`, `radius`
+
+```json
+{
+  "op": "applyMotionBlur",
+  "target": {
+    "layerName": "Hero"
+  },
+  "angle": 18,
+  "radius": 24
+}
+```
+
+### `applySmartBlur`
+
+- Aliases: `filter.smartBlur`
+- Required: `target (or active layer)`, `radius`, `threshold`
+- Supported args: `mode`, `quality`, `radius`, `threshold`
+
+```json
+{
+  "op": "applySmartBlur",
+  "target": {
+    "layerName": "Hero"
+  },
+  "radius": 3,
+  "threshold": 12,
+  "quality": "high",
+  "mode": "normal"
+}
+```
+
+### `applyHighPass`
+
+- Aliases: `filter.highPass`
+- Required: `target (or active layer)`, `radius`
+- Supported args: `radius`
+
+```json
+{
+  "op": "applyHighPass",
+  "target": {
+    "layerName": "Hero"
+  },
+  "radius": 2
+}
+```
+
+### `applyMedianNoise`
+
+- Aliases: `filter.median`
+- Required: `target (or active layer)`, `radius`
+- Supported args: `radius`
+
+```json
+{
+  "op": "applyMedianNoise",
+  "target": {
+    "layerName": "Texture"
+  },
+  "radius": 3
+}
+```
+
+### `applyMinimum`
+
+- Aliases: `filter.minimum`
+- Required: `target (or active layer)`, `radius`
+- Supported args: `radius`
+
+```json
+{
+  "op": "applyMinimum",
+  "target": {
+    "layerName": "Mask"
+  },
+  "radius": 1
+}
+```
+
+### `applyMaximum`
+
+- Aliases: `filter.maximum`
+- Required: `target (or active layer)`, `radius`
+- Supported args: `radius`
+
+```json
+{
+  "op": "applyMaximum",
+  "target": {
+    "layerName": "Mask"
+  },
+  "radius": 1
+}
+```
+
+### `applyDustAndScratches`
+
+- Aliases: `filter.dustAndScratches`
+- Required: `target (or active layer)`, `radius`, `threshold`
+- Supported args: `radius`, `threshold`
+
+```json
+{
+  "op": "applyDustAndScratches",
+  "target": {
+    "layerName": "Texture"
+  },
+  "radius": 2,
+  "threshold": 4
 }
 ```
 
@@ -1416,6 +1917,171 @@ Use this page as the source of truth when generating `ops` payloads. Canonical n
   "match": "^(Hero|CTA)$",
   "format": "png",
   "outputDir": "./tmp/layers"
+}
+```
+
+### `getPixels`
+
+- Aliases: `imaging.getPixels`
+- Required: None
+- Supported args: `componentSize`, `colorSpace`, `docRef`, `includeData`, `options`, `sourceBounds`, `target`, `targetBounds`, `targetSize`
+
+```json
+{
+  "op": "getPixels",
+  "target": {
+    "layerName": "Hero"
+  },
+  "sourceBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 512,
+    "bottom": 512
+  },
+  "includeData": false
+}
+```
+
+### `putPixels`
+
+- Aliases: `imaging.putPixels`
+- Required: `imageData/pixels`
+- Supported args: `componentSize`, `colorSpace`, `docRef`, `imageData`, `options`, `pixels`, `target`, `targetBounds`
+
+```json
+{
+  "op": "putPixels",
+  "target": {
+    "layerName": "Hero"
+  },
+  "imageData": {
+    "width": 64,
+    "height": 64,
+    "components": 4,
+    "componentSize": 8,
+    "colorSpace": "RGB",
+    "data": "BASE64_ENCODED_BYTES"
+  }
+}
+```
+
+### `getSelectionPixels`
+
+- Aliases: `imaging.getSelection`
+- Required: None
+- Supported args: `componentSize`, `colorSpace`, `docRef`, `includeData`, `options`, `sourceBounds`, `targetBounds`, `targetSize`
+
+```json
+{
+  "op": "getSelectionPixels",
+  "includeData": false
+}
+```
+
+### `putSelectionPixels`
+
+- Aliases: `imaging.putSelection`
+- Required: `imageData/pixels`
+- Supported args: `componentSize`, `colorSpace`, `docRef`, `imageData`, `options`, `pixels`, `targetBounds`
+
+```json
+{
+  "op": "putSelectionPixels",
+  "imageData": {
+    "width": 64,
+    "height": 64,
+    "components": 1,
+    "componentSize": 8,
+    "colorSpace": "Grayscale",
+    "data": "BASE64_ENCODED_BYTES"
+  }
+}
+```
+
+### `getLayerMaskPixels`
+
+- Aliases: `imaging.getLayerMask`
+- Required: `target (or active layer)`
+- Supported args: `componentSize`, `colorSpace`, `docRef`, `includeData`, `options`, `sourceBounds`, `target`, `targetBounds`, `targetSize`
+
+```json
+{
+  "op": "getLayerMaskPixels",
+  "target": {
+    "layerName": "Hero"
+  },
+  "includeData": false
+}
+```
+
+### `putLayerMaskPixels`
+
+- Aliases: `imaging.putLayerMask`
+- Required: `target (or active layer)`, `imageData/pixels`
+- Supported args: `componentSize`, `colorSpace`, `docRef`, `imageData`, `options`, `pixels`, `target`, `targetBounds`
+
+```json
+{
+  "op": "putLayerMaskPixels",
+  "target": {
+    "layerName": "Hero"
+  },
+  "imageData": {
+    "width": 64,
+    "height": 64,
+    "components": 1,
+    "componentSize": 8,
+    "colorSpace": "Grayscale",
+    "data": "BASE64_ENCODED_BYTES"
+  }
+}
+```
+
+### `encodeImageData`
+
+- Aliases: `imaging.encodeImageData`
+- Required: `imageData/pixels`
+- Supported args: `format`, `imageData`, `options`, `pixels`, `quality`
+
+```json
+{
+  "op": "encodeImageData",
+  "format": "png",
+  "imageData": {
+    "width": 64,
+    "height": 64,
+    "components": 4,
+    "componentSize": 8,
+    "colorSpace": "RGB",
+    "data": "BASE64_ENCODED_BYTES"
+  }
+}
+```
+
+### `playAction`
+
+- Aliases: `action.play`
+- Required: `action/name` and `actionSet/set`
+- Supported args: `action`, `actionSet`, `name`, `set`, `setName`
+
+```json
+{
+  "op": "playAction",
+  "actionSet": "My Set",
+  "action": "Warm Grade"
+}
+```
+
+### `playActionSet`
+
+- Aliases: `actionSet.play`
+- Required: `actionSet/set/name`
+- Supported args: `action`, `actionSet`, `name`, `set`, `setName`
+
+```json
+{
+  "op": "playActionSet",
+  "actionSet": "My Set"
 }
 ```
 

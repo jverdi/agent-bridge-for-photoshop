@@ -14,6 +14,12 @@ export const GENERATED_OPERATION_CATALOG = [
       "cropDocument",
       "trimDocument",
       "rotateDocument",
+      "changeDocumentMode",
+      "convertColorProfile",
+      "calculations",
+      "applyImage",
+      "splitChannels",
+      "sampleColor",
       "flattenDocument",
       "mergeVisible"
     ]
@@ -44,7 +50,11 @@ export const GENERATED_OPERATION_CATALOG = [
       "mergeLayer",
       "rasterizeLayer",
       "linkLayers",
-      "unlinkLayer"
+      "unlinkLayer",
+      "createLayerComp",
+      "applyLayerComp",
+      "recaptureLayerComp",
+      "deleteLayerComp"
     ]
   },
   {
@@ -85,6 +95,22 @@ export const GENERATED_OPERATION_CATALOG = [
       "selectEllipse",
       "selectPolygon",
       "selectLayerPixels",
+      "createChannel",
+      "duplicateChannel",
+      "deleteChannel",
+      "saveSelection",
+      "saveSelectionTo",
+      "loadSelection",
+      "createPath",
+      "deletePath",
+      "makeWorkPathFromSelection",
+      "makeSelectionFromPath",
+      "fillPath",
+      "strokePath",
+      "makeClippingPath",
+      "addGuide",
+      "removeGuide",
+      "clearGuides",
       "setSelection",
       "modifySelection",
       "createLayerMask",
@@ -107,12 +133,20 @@ export const GENERATED_OPERATION_CATALOG = [
     "name": "Adjustments and filters",
     "operations": [
       "createAdjustmentLayer",
+      "setAdjustmentLayer",
       "applyFilter",
       "applyGaussianBlur",
       "applyAddNoise",
       "applyUnsharpMask",
       "applySharpen",
-      "applyBlur"
+      "applyBlur",
+      "applyMotionBlur",
+      "applySmartBlur",
+      "applyHighPass",
+      "applyMedianNoise",
+      "applyMinimum",
+      "applyMaximum",
+      "applyDustAndScratches"
     ]
   },
   {
@@ -122,6 +156,15 @@ export const GENERATED_OPERATION_CATALOG = [
       "exportDocument",
       "exportLayer",
       "exportLayersByName",
+      "getPixels",
+      "putPixels",
+      "getSelectionPixels",
+      "putSelectionPixels",
+      "getLayerMaskPixels",
+      "putLayerMaskPixels",
+      "encodeImageData",
+      "playAction",
+      "playActionSet",
       "batchPlay"
     ]
   }
@@ -244,6 +287,66 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "`anchor`, `angle`, `docRef`, `options`, `target`",
     "notes": "",
     "example": "{\n  \"op\": \"rotateDocument\",\n  \"angle\": 90\n}"
+  },
+  {
+    "name": "changeDocumentMode",
+    "aliases": [
+      "document.changeMode"
+    ],
+    "required": "`mode (or to/newMode)`",
+    "supportedArgs": "`docRef`, `mode`, `newMode`, `target`, `to`",
+    "notes": "",
+    "example": "{\n  \"op\": \"changeDocumentMode\",\n  \"mode\": \"grayscale\"\n}"
+  },
+  {
+    "name": "convertColorProfile",
+    "aliases": [
+      "document.convertProfile"
+    ],
+    "required": "`profile (or name/colorProfile)`",
+    "supportedArgs": "`blackPointCompensation`, `colorProfile`, `dither`, `docRef`, `intent`, `name`, `profile`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"convertColorProfile\",\n  \"profile\": \"Display P3\",\n  \"intent\": \"relativeColorimetric\",\n  \"blackPointCompensation\": true\n}"
+  },
+  {
+    "name": "calculations",
+    "aliases": [
+      "document.calculations"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`, `options`, `target`, plus calculation option fields",
+    "notes": "",
+    "example": "{\n  \"op\": \"calculations\",\n  \"options\": {\n    \"result\": \"newChannel\"\n  }\n}"
+  },
+  {
+    "name": "applyImage",
+    "aliases": [
+      "document.applyImage"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`, `options`, `target`, `targetLayer`, plus apply-image option fields",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyImage\",\n  \"targetLayer\": {\n    \"layerName\": \"Hero\"\n  },\n  \"options\": {\n    \"blendMode\": \"multiply\",\n    \"opacity\": 65\n  }\n}"
+  },
+  {
+    "name": "splitChannels",
+    "aliases": [
+      "document.splitChannels"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"splitChannels\"\n}"
+  },
+  {
+    "name": "sampleColor",
+    "aliases": [
+      "document.sampleColor"
+    ],
+    "required": "`x/y (or position{x,y})`",
+    "supportedArgs": "`docRef`, `position`, `target`, `x`, `y`",
+    "notes": "",
+    "example": "{\n  \"op\": \"sampleColor\",\n  \"x\": 220,\n  \"y\": 340\n}"
   },
   {
     "name": "flattenDocument",
@@ -445,8 +548,8 @@ export const GENERATED_OPERATION_ENTRIES = [
     "aliases": [
       "layer.effects"
     ],
-    "required": "`target (or active layer)` plus one of `effects`, `dropShadow`, `stroke`, or `clear: true`",
-    "supportedArgs": "`clear`, `dropShadow`, `effects`, `scale`, `stroke`",
+    "required": "`target (or active layer)` plus one of `effects`, effect fields, or `clear: true`",
+    "supportedArgs": "`bevelEmboss`, `clear`, `colorOverlay`, `dropShadow`, `effects`, `gradientOverlay`, `innerGlow`, `innerShadow`, `outerGlow`, `satin`, `scale`, `stroke`",
     "notes": "",
     "example": "{\n  \"op\": \"setLayerEffects\",\n  \"target\": {\n    \"layerName\": \"Headline\"\n  },\n  \"dropShadow\": {\n    \"color\": \"#000000\",\n    \"opacity\": 45,\n    \"angle\": 120,\n    \"distance\": 10,\n    \"size\": 18\n  },\n  \"stroke\": {\n    \"color\": \"#ffffff\",\n    \"size\": 2,\n    \"position\": \"outside\",\n    \"opacity\": 100\n  }\n}"
   },
@@ -510,6 +613,47 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "No op-specific args",
     "notes": "",
     "example": "{\n  \"op\": \"unlinkLayer\",\n  \"target\": {\n    \"layerName\": \"Icon\"\n  }\n}"
+  },
+  {
+    "name": "createLayerComp",
+    "aliases": [
+      "layerComp.create"
+    ],
+    "required": "None",
+    "supportedArgs": "`captureAppearance`, `capturePosition`, `captureVisibility`, `comment`, `docRef`, `name`",
+    "notes": "",
+    "example": "{\n  \"op\": \"createLayerComp\",\n  \"name\": \"Hero Variant\",\n  \"comment\": \"Primary hero layout\"\n}"
+  },
+  {
+    "name": "applyLayerComp",
+    "aliases": [
+      "layerComp.apply"
+    ],
+    "required": "`layerComp target (name/id)`",
+    "supportedArgs": "`docRef`, `layerComp`, `layerCompId`, `layerCompName`, `name`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyLayerComp\",\n  \"layerComp\": \"Hero Variant\"\n}"
+  },
+  {
+    "name": "recaptureLayerComp",
+    "aliases": [
+      "layerComp.recapture"
+    ],
+    "required": "`layerComp target (name/id)`",
+    "supportedArgs": "`captureAppearance`, `capturePosition`, `captureVisibility`, `childLayerCompState`, `docRef`, `layerComp`, `layerCompId`, `layerCompName`, `name`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"recaptureLayerComp\",\n  \"layerComp\": \"Hero Variant\",\n  \"captureVisibility\": true\n}"
+  },
+  {
+    "name": "deleteLayerComp",
+    "aliases": [
+      "layerComp.delete",
+      "layerComp.remove"
+    ],
+    "required": "`layerComp target (name/id)`",
+    "supportedArgs": "`docRef`, `layerComp`, `layerCompId`, `layerCompName`, `name`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"deleteLayerComp\",\n  \"layerComp\": \"Hero Variant\"\n}"
   },
   {
     "name": "transformLayer",
@@ -763,6 +907,171 @@ export const GENERATED_OPERATION_ENTRIES = [
     "example": "{\n  \"op\": \"selectLayerPixels\",\n  \"target\": {\n    \"layerName\": \"Logo\"\n  },\n  \"mode\": \"replace\"\n}"
   },
   {
+    "name": "createChannel",
+    "aliases": [
+      "channel.create"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`, `name`",
+    "notes": "",
+    "example": "{\n  \"op\": \"createChannel\",\n  \"name\": \"Mask Alpha\"\n}"
+  },
+  {
+    "name": "duplicateChannel",
+    "aliases": [
+      "channel.duplicate"
+    ],
+    "required": "`channel/target`",
+    "supportedArgs": "`channel`, `channelId`, `channelName`, `docRef`, `name`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"duplicateChannel\",\n  \"channel\": \"Mask Alpha\",\n  \"name\": \"Mask Alpha Copy\"\n}"
+  },
+  {
+    "name": "deleteChannel",
+    "aliases": [
+      "channel.delete",
+      "channel.remove"
+    ],
+    "required": "`channel/target`",
+    "supportedArgs": "`channel`, `channelId`, `channelName`, `docRef`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"deleteChannel\",\n  \"channel\": \"Mask Alpha Copy\"\n}"
+  },
+  {
+    "name": "saveSelection",
+    "aliases": [
+      "selection.save"
+    ],
+    "required": "None",
+    "supportedArgs": "`channel`, `channelId`, `channelName`, `docRef`, `name`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"saveSelection\",\n  \"name\": \"Saved Selection 1\"\n}"
+  },
+  {
+    "name": "saveSelectionTo",
+    "aliases": [
+      "selection.saveTo"
+    ],
+    "required": "None",
+    "supportedArgs": "`channel`, `channelId`, `channelName`, `docRef`, `name`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"saveSelectionTo\",\n  \"channel\": \"Saved Selection 1\"\n}"
+  },
+  {
+    "name": "loadSelection",
+    "aliases": [
+      "selection.load"
+    ],
+    "required": "`channel/target`",
+    "supportedArgs": "`channel`, `channelId`, `channelName`, `docRef`, `invert`, `mode`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"loadSelection\",\n  \"channel\": \"Saved Selection 1\"\n}"
+  },
+  {
+    "name": "createPath",
+    "aliases": [
+      "path.create"
+    ],
+    "required": "active selection",
+    "supportedArgs": "`docRef`, `name`, `tolerance`",
+    "notes": "First-class `createPath` builds a work path from the current selection.",
+    "example": "{\n  \"op\": \"createPath\",\n  \"name\": \"Subject Path\",\n  \"tolerance\": 2\n}"
+  },
+  {
+    "name": "deletePath",
+    "aliases": [
+      "path.delete",
+      "path.remove"
+    ],
+    "required": "`path/target`",
+    "supportedArgs": "`docRef`, `path`, `pathId`, `pathName`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"deletePath\",\n  \"path\": \"Subject Path\"\n}"
+  },
+  {
+    "name": "makeWorkPathFromSelection",
+    "aliases": [
+      "path.makeWorkPath",
+      "selection.makeWorkPath"
+    ],
+    "required": "active selection",
+    "supportedArgs": "`docRef`, `name`, `tolerance`",
+    "notes": "",
+    "example": "{\n  \"op\": \"makeWorkPathFromSelection\",\n  \"name\": \"Work Path\",\n  \"tolerance\": 2\n}"
+  },
+  {
+    "name": "makeSelectionFromPath",
+    "aliases": [
+      "path.makeSelection"
+    ],
+    "required": "`path/target`",
+    "supportedArgs": "`antiAlias`, `docRef`, `feather`, `mode`, `path`, `pathId`, `pathName`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"makeSelectionFromPath\",\n  \"path\": \"Subject Path\",\n  \"mode\": \"replace\"\n}"
+  },
+  {
+    "name": "fillPath",
+    "aliases": [
+      "path.fill"
+    ],
+    "required": "`path/target`",
+    "supportedArgs": "`antiAlias`, `blendMode`, `color`, `docRef`, `feather`, `fillColor`, `opacity`, `path`, `pathId`, `pathName`, `preserveTransparency`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"fillPath\",\n  \"path\": \"Subject Path\",\n  \"fillColor\": \"#22c55e\",\n  \"opacity\": 90\n}"
+  },
+  {
+    "name": "strokePath",
+    "aliases": [
+      "path.stroke"
+    ],
+    "required": "`path/target`",
+    "supportedArgs": "`docRef`, `paintTool`, `path`, `pathId`, `pathName`, `simulatePressure`, `target`, `tool`",
+    "notes": "",
+    "example": "{\n  \"op\": \"strokePath\",\n  \"path\": \"Subject Path\",\n  \"tool\": \"brush\"\n}"
+  },
+  {
+    "name": "makeClippingPath",
+    "aliases": [
+      "path.makeClippingPath"
+    ],
+    "required": "`path/target`",
+    "supportedArgs": "`docRef`, `flatness`, `path`, `pathId`, `pathName`, `target`",
+    "notes": "",
+    "example": "{\n  \"op\": \"makeClippingPath\",\n  \"path\": \"Subject Path\",\n  \"flatness\": 1\n}"
+  },
+  {
+    "name": "addGuide",
+    "aliases": [
+      "guide.add"
+    ],
+    "required": "`position/coordinate/value`",
+    "supportedArgs": "`direction`, `docRef`, `orientation`, `position`, `coordinate`, `value`",
+    "notes": "",
+    "example": "{\n  \"op\": \"addGuide\",\n  \"direction\": \"vertical\",\n  \"position\": 540\n}"
+  },
+  {
+    "name": "removeGuide",
+    "aliases": [
+      "guide.remove",
+      "guide.delete"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`, `index`",
+    "notes": "",
+    "example": "{\n  \"op\": \"removeGuide\",\n  \"index\": 0\n}"
+  },
+  {
+    "name": "clearGuides",
+    "aliases": [
+      "guide.clear",
+      "guide.removeAll"
+    ],
+    "required": "None",
+    "supportedArgs": "`docRef`",
+    "notes": "",
+    "example": "{\n  \"op\": \"clearGuides\"\n}"
+  },
+  {
     "name": "setSelection",
     "aliases": [
       "selection.set"
@@ -858,9 +1167,19 @@ export const GENERATED_OPERATION_ENTRIES = [
       "adjustment.create"
     ],
     "required": "None (`levels` default when omitted)",
-    "supportedArgs": "`adjustment`, `name`, `type`",
-    "notes": "`type`/`adjustment` currently select the adjustment kind; detailed numeric adjustment payload maps are not yet interpreted by the bridge.",
-    "example": "{\n  \"op\": \"createAdjustmentLayer\",\n  \"type\": \"levels\",\n  \"name\": \"Grade\"\n}"
+    "supportedArgs": "`adjustment`, `kind`, `name`, `settings`, `type`, plus adjustment fields",
+    "notes": "Pass either (a) `type`/`kind` + settings fields, (b) `adjustment` as a plain object (`{ \"brightness\": 10, ... }`), or (c) `adjustment` as a raw descriptor with `_obj`.",
+    "example": "{\n  \"op\": \"createAdjustmentLayer\",\n  \"type\": \"brightnessContrast\",\n  \"adjustment\": {\n    \"brightness\": 8,\n    \"contrast\": 12\n  },\n  \"name\": \"Grade\"\n}"
+  },
+  {
+    "name": "setAdjustmentLayer",
+    "aliases": [
+      "adjustment.set"
+    ],
+    "required": "`target (or active layer)` and adjustment descriptor or kind/settings",
+    "supportedArgs": "`adjustment`, `kind`, `settings`, `target`, `type`, plus adjustment fields",
+    "notes": "",
+    "example": "{\n  \"op\": \"setAdjustmentLayer\",\n  \"target\": {\n    \"layerName\": \"Grade\"\n  },\n  \"type\": \"hueSaturation\",\n  \"adjustment\": {\n    \"masterHue\": 8,\n    \"masterSaturation\": -10,\n    \"masterLightness\": 4\n  }\n}"
   },
   {
     "name": "applyFilter",
@@ -923,6 +1242,76 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "No op-specific args",
     "notes": "",
     "example": "{\n  \"op\": \"applyBlur\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  }\n}"
+  },
+  {
+    "name": "applyMotionBlur",
+    "aliases": [
+      "filter.motionBlur"
+    ],
+    "required": "`target (or active layer)`, `angle`, `radius`",
+    "supportedArgs": "`angle`, `radius`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyMotionBlur\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"angle\": 18,\n  \"radius\": 24\n}"
+  },
+  {
+    "name": "applySmartBlur",
+    "aliases": [
+      "filter.smartBlur"
+    ],
+    "required": "`target (or active layer)`, `radius`, `threshold`",
+    "supportedArgs": "`mode`, `quality`, `radius`, `threshold`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applySmartBlur\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"radius\": 3,\n  \"threshold\": 12,\n  \"quality\": \"high\",\n  \"mode\": \"normal\"\n}"
+  },
+  {
+    "name": "applyHighPass",
+    "aliases": [
+      "filter.highPass"
+    ],
+    "required": "`target (or active layer)`, `radius`",
+    "supportedArgs": "`radius`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyHighPass\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"radius\": 2\n}"
+  },
+  {
+    "name": "applyMedianNoise",
+    "aliases": [
+      "filter.median"
+    ],
+    "required": "`target (or active layer)`, `radius`",
+    "supportedArgs": "`radius`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyMedianNoise\",\n  \"target\": {\n    \"layerName\": \"Texture\"\n  },\n  \"radius\": 3\n}"
+  },
+  {
+    "name": "applyMinimum",
+    "aliases": [
+      "filter.minimum"
+    ],
+    "required": "`target (or active layer)`, `radius`",
+    "supportedArgs": "`radius`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyMinimum\",\n  \"target\": {\n    \"layerName\": \"Mask\"\n  },\n  \"radius\": 1\n}"
+  },
+  {
+    "name": "applyMaximum",
+    "aliases": [
+      "filter.maximum"
+    ],
+    "required": "`target (or active layer)`, `radius`",
+    "supportedArgs": "`radius`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyMaximum\",\n  \"target\": {\n    \"layerName\": \"Mask\"\n  },\n  \"radius\": 1\n}"
+  },
+  {
+    "name": "applyDustAndScratches",
+    "aliases": [
+      "filter.dustAndScratches"
+    ],
+    "required": "`target (or active layer)`, `radius`, `threshold`",
+    "supportedArgs": "`radius`, `threshold`",
+    "notes": "",
+    "example": "{\n  \"op\": \"applyDustAndScratches\",\n  \"target\": {\n    \"layerName\": \"Texture\"\n  },\n  \"radius\": 2,\n  \"threshold\": 4\n}"
   },
   {
     "name": "createTextLayer",
@@ -1004,6 +1393,96 @@ export const GENERATED_OPERATION_ENTRIES = [
     "supportedArgs": "`docRef`, `format`, `match`, `output`, `outputDir`",
     "notes": "",
     "example": "{\n  \"op\": \"exportLayersByName\",\n  \"match\": \"^(Hero|CTA)$\",\n  \"format\": \"png\",\n  \"outputDir\": \"./tmp/layers\"\n}"
+  },
+  {
+    "name": "getPixels",
+    "aliases": [
+      "imaging.getPixels"
+    ],
+    "required": "None",
+    "supportedArgs": "`componentSize`, `colorSpace`, `docRef`, `includeData`, `options`, `sourceBounds`, `target`, `targetBounds`, `targetSize`",
+    "notes": "",
+    "example": "{\n  \"op\": \"getPixels\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"sourceBounds\": {\n    \"left\": 0,\n    \"top\": 0,\n    \"right\": 512,\n    \"bottom\": 512\n  },\n  \"includeData\": false\n}"
+  },
+  {
+    "name": "putPixels",
+    "aliases": [
+      "imaging.putPixels"
+    ],
+    "required": "`imageData/pixels`",
+    "supportedArgs": "`componentSize`, `colorSpace`, `docRef`, `imageData`, `options`, `pixels`, `target`, `targetBounds`",
+    "notes": "",
+    "example": "{\n  \"op\": \"putPixels\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"imageData\": {\n    \"width\": 64,\n    \"height\": 64,\n    \"components\": 4,\n    \"componentSize\": 8,\n    \"colorSpace\": \"RGB\",\n    \"data\": \"BASE64_ENCODED_BYTES\"\n  }\n}"
+  },
+  {
+    "name": "getSelectionPixels",
+    "aliases": [
+      "imaging.getSelection"
+    ],
+    "required": "None",
+    "supportedArgs": "`componentSize`, `colorSpace`, `docRef`, `includeData`, `options`, `sourceBounds`, `targetBounds`, `targetSize`",
+    "notes": "",
+    "example": "{\n  \"op\": \"getSelectionPixels\",\n  \"includeData\": false\n}"
+  },
+  {
+    "name": "putSelectionPixels",
+    "aliases": [
+      "imaging.putSelection"
+    ],
+    "required": "`imageData/pixels`",
+    "supportedArgs": "`componentSize`, `colorSpace`, `docRef`, `imageData`, `options`, `pixels`, `targetBounds`",
+    "notes": "",
+    "example": "{\n  \"op\": \"putSelectionPixels\",\n  \"imageData\": {\n    \"width\": 64,\n    \"height\": 64,\n    \"components\": 1,\n    \"componentSize\": 8,\n    \"colorSpace\": \"Grayscale\",\n    \"data\": \"BASE64_ENCODED_BYTES\"\n  }\n}"
+  },
+  {
+    "name": "getLayerMaskPixels",
+    "aliases": [
+      "imaging.getLayerMask"
+    ],
+    "required": "`target (or active layer)`",
+    "supportedArgs": "`componentSize`, `colorSpace`, `docRef`, `includeData`, `options`, `sourceBounds`, `target`, `targetBounds`, `targetSize`",
+    "notes": "",
+    "example": "{\n  \"op\": \"getLayerMaskPixels\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"includeData\": false\n}"
+  },
+  {
+    "name": "putLayerMaskPixels",
+    "aliases": [
+      "imaging.putLayerMask"
+    ],
+    "required": "`target (or active layer)`, `imageData/pixels`",
+    "supportedArgs": "`componentSize`, `colorSpace`, `docRef`, `imageData`, `options`, `pixels`, `target`, `targetBounds`",
+    "notes": "",
+    "example": "{\n  \"op\": \"putLayerMaskPixels\",\n  \"target\": {\n    \"layerName\": \"Hero\"\n  },\n  \"imageData\": {\n    \"width\": 64,\n    \"height\": 64,\n    \"components\": 1,\n    \"componentSize\": 8,\n    \"colorSpace\": \"Grayscale\",\n    \"data\": \"BASE64_ENCODED_BYTES\"\n  }\n}"
+  },
+  {
+    "name": "encodeImageData",
+    "aliases": [
+      "imaging.encodeImageData"
+    ],
+    "required": "`imageData/pixels`",
+    "supportedArgs": "`format`, `imageData`, `options`, `pixels`, `quality`",
+    "notes": "",
+    "example": "{\n  \"op\": \"encodeImageData\",\n  \"format\": \"png\",\n  \"imageData\": {\n    \"width\": 64,\n    \"height\": 64,\n    \"components\": 4,\n    \"componentSize\": 8,\n    \"colorSpace\": \"RGB\",\n    \"data\": \"BASE64_ENCODED_BYTES\"\n  }\n}"
+  },
+  {
+    "name": "playAction",
+    "aliases": [
+      "action.play"
+    ],
+    "required": "`action/name` and `actionSet/set`",
+    "supportedArgs": "`action`, `actionSet`, `name`, `set`, `setName`",
+    "notes": "",
+    "example": "{\n  \"op\": \"playAction\",\n  \"actionSet\": \"My Set\",\n  \"action\": \"Warm Grade\"\n}"
+  },
+  {
+    "name": "playActionSet",
+    "aliases": [
+      "actionSet.play"
+    ],
+    "required": "`actionSet/set/name`",
+    "supportedArgs": "`action`, `actionSet`, `name`, `set`, `setName`",
+    "notes": "",
+    "example": "{\n  \"op\": \"playActionSet\",\n  \"actionSet\": \"My Set\"\n}"
   },
   {
     "name": "batchPlay",

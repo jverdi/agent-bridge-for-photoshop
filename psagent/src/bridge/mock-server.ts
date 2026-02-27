@@ -58,6 +58,37 @@ interface Layer {
   };
 }
 
+interface Channel {
+  id: string;
+  name: string;
+  kind: "alpha" | "component";
+}
+
+interface PathItemState {
+  id: string;
+  name: string;
+  madeFromSelectionAt?: string;
+  clipping?: {
+    enabled: boolean;
+    flatness?: number;
+  };
+  fill?: Record<string, unknown>;
+  stroke?: Record<string, unknown>;
+}
+
+interface GuideState {
+  id: string;
+  direction: string;
+  position: number;
+}
+
+interface LayerCompState {
+  id: string;
+  name: string;
+  comment?: string;
+  capturedAt: string;
+}
+
 interface ExportRecord {
   id: string;
   tx: string;
@@ -81,9 +112,17 @@ interface DocumentState {
   ref: string;
   width: number;
   height: number;
+  mode?: string;
+  profile?: string;
   rootLayerIds: string[];
   layers: Record<string, Layer>;
+  channels: Record<string, Channel>;
+  paths: Record<string, PathItemState>;
+  guides: GuideState[];
+  layerComps: Record<string, LayerCompState>;
   selection: string[];
+  selectionChannelId?: string;
+  selectionPathId?: string;
   selectionInfo?: Record<string, unknown>;
   selectionInverted?: boolean;
   exports: ExportRecord[];
@@ -102,6 +141,10 @@ interface MockSnapshot {
   docs: Record<string, DocumentState>;
   counters: {
     layer: number;
+    channel: number;
+    path: number;
+    guide: number;
+    layerComp: number;
     export: number;
     checkpoint: number;
     batchPlay: number;
@@ -140,6 +183,10 @@ const state = {
   events: [] as AdapterEvent[],
   counters: {
     layer: 0,
+    channel: 0,
+    path: 0,
+    guide: 0,
+    layerComp: 0,
     export: 0,
     checkpoint: 0,
     batchPlay: 0,
@@ -169,6 +216,26 @@ function nextTimestamp(): string {
 function nextLayerId(): string {
   state.counters.layer += 1;
   return `layer_${state.counters.layer.toString().padStart(4, "0")}`;
+}
+
+function nextChannelId(): string {
+  state.counters.channel += 1;
+  return `channel_${state.counters.channel.toString().padStart(4, "0")}`;
+}
+
+function nextPathId(): string {
+  state.counters.path += 1;
+  return `path_${state.counters.path.toString().padStart(4, "0")}`;
+}
+
+function nextGuideId(): string {
+  state.counters.guide += 1;
+  return `guide_${state.counters.guide.toString().padStart(4, "0")}`;
+}
+
+function nextLayerCompId(): string {
+  state.counters.layerComp += 1;
+  return `layercomp_${state.counters.layerComp.toString().padStart(4, "0")}`;
 }
 
 function nextExportId(): string {
@@ -221,12 +288,26 @@ function buildInitialDocument(ref: string): DocumentState {
     ref,
     width: 1440,
     height: 900,
+    mode: "rgb",
+    profile: "sRGB IEC61966-2.1",
     rootLayerIds: [titleLayer.id, heroLayer.id],
     layers: {
       [titleLayer.id]: titleLayer,
       [heroLayer.id]: heroLayer
     },
+    channels: {
+      channel_rgb: {
+        id: "channel_rgb",
+        name: "RGB",
+        kind: "component"
+      }
+    },
+    paths: {},
+    guides: [],
+    layerComps: {},
     selection: [],
+    selectionChannelId: undefined,
+    selectionPathId: undefined,
     selectionInfo: undefined,
     selectionInverted: false,
     exports: [],
@@ -496,6 +577,147 @@ function resolveLayersFromTargets(doc: DocumentState, targets: LayerReference[] 
   return targets.map((target) => resolveLayer(doc, target, refs));
 }
 
+function normalizeChannelTarget(target: unknown, refs: Record<string, string>): string {
+  if (typeof target === "string") {
+    const trimmed = target.trim();
+    if (!trimmed) {
+      throw new Error("channel target cannot be empty");
+    }
+    if (trimmed.startsWith("$")) {
+      const resolved = refs[trimmed.slice(1)];
+      if (!resolved) {
+        throw new Error(`Unknown channel ref '${trimmed}'`);
+      }
+      return resolved;
+    }
+    return trimmed;
+  }
+
+  if (target && typeof target === "object" && !Array.isArray(target)) {
+    const record = target as Record<string, unknown>;
+    const channelId = record.channelId ?? record.id;
+    const channelName = record.channelName ?? record.name;
+    if (typeof channelId === "string" && channelId.trim()) {
+      return channelId.trim();
+    }
+    if (typeof channelName === "string" && channelName.trim()) {
+      return channelName.trim();
+    }
+    if (typeof record.ref === "string" && record.ref.trim()) {
+      return normalizeChannelTarget(record.ref, refs);
+    }
+  }
+
+  throw new Error("invalid channel target");
+}
+
+function resolveChannel(doc: DocumentState, target: unknown, refs: Record<string, string>): Channel {
+  const token = normalizeChannelTarget(target, refs);
+  const byId = doc.channels[token];
+  if (byId) {
+    return byId;
+  }
+  const byName = Object.values(doc.channels).find((channel) => channel.name === token);
+  if (byName) {
+    return byName;
+  }
+  throw new Error(`channel not found: ${token}`);
+}
+
+function normalizePathTarget(target: unknown, refs: Record<string, string>): string {
+  if (typeof target === "string") {
+    const trimmed = target.trim();
+    if (!trimmed) {
+      throw new Error("path target cannot be empty");
+    }
+    if (trimmed.startsWith("$")) {
+      const resolved = refs[trimmed.slice(1)];
+      if (!resolved) {
+        throw new Error(`Unknown path ref '${trimmed}'`);
+      }
+      return resolved;
+    }
+    return trimmed;
+  }
+
+  if (target && typeof target === "object" && !Array.isArray(target)) {
+    const record = target as Record<string, unknown>;
+    const pathId = record.pathId ?? record.id;
+    const pathName = record.pathName ?? record.name;
+    if (typeof pathId === "string" && pathId.trim()) {
+      return pathId.trim();
+    }
+    if (typeof pathName === "string" && pathName.trim()) {
+      return pathName.trim();
+    }
+    if (typeof record.ref === "string" && record.ref.trim()) {
+      return normalizePathTarget(record.ref, refs);
+    }
+  }
+
+  throw new Error("invalid path target");
+}
+
+function resolvePath(doc: DocumentState, target: unknown, refs: Record<string, string>): PathItemState {
+  const token = normalizePathTarget(target, refs);
+  const byId = doc.paths[token];
+  if (byId) {
+    return byId;
+  }
+  const byName = Object.values(doc.paths).find((item) => item.name === token);
+  if (byName) {
+    return byName;
+  }
+  throw new Error(`path not found: ${token}`);
+}
+
+function normalizeLayerCompTarget(target: unknown, refs: Record<string, string>): string {
+  if (typeof target === "string") {
+    const trimmed = target.trim();
+    if (!trimmed) {
+      throw new Error("layerComp target cannot be empty");
+    }
+    if (trimmed.startsWith("$")) {
+      const resolved = refs[trimmed.slice(1)];
+      if (!resolved) {
+        throw new Error(`Unknown layerComp ref '${trimmed}'`);
+      }
+      return resolved;
+    }
+    return trimmed;
+  }
+
+  if (target && typeof target === "object" && !Array.isArray(target)) {
+    const record = target as Record<string, unknown>;
+    const layerCompId = record.layerCompId ?? record.id;
+    const layerCompName = record.layerCompName ?? record.name;
+    if (typeof layerCompId === "string" && layerCompId.trim()) {
+      return layerCompId.trim();
+    }
+    if (typeof layerCompName === "string" && layerCompName.trim()) {
+      return layerCompName.trim();
+    }
+    if (typeof record.ref === "string" && record.ref.trim()) {
+      return normalizeLayerCompTarget(record.ref, refs);
+    }
+  }
+
+  throw new Error("invalid layerComp target");
+}
+
+function resolveLayerComp(doc: DocumentState, target: unknown, refs: Record<string, string>): LayerCompState {
+  const token = normalizeLayerCompTarget(target, refs);
+  const byId = doc.layerComps[token];
+  if (byId) {
+    return byId;
+  }
+  const byName = Object.values(doc.layerComps).find((item) => item.name === token);
+  if (byName) {
+    return byName;
+  }
+  throw new Error(`layerComp not found: ${token}`);
+}
+
 function appendExportRecord(
   doc: DocumentState,
   tx: string,
@@ -516,6 +738,86 @@ function appendExportRecord(
   };
   doc.exports.push(record);
   return record;
+}
+
+const ADJUSTMENT_KIND_ALIASES: Record<string, string> = {
+  levels: "levels",
+  curves: "curves",
+  huesaturation: "hueSaturation",
+  huesat: "hueSaturation",
+  "hue-sat": "hueSaturation",
+  brightnesscontrast: "brightnessContrast",
+  brightness: "brightnessContrast",
+  vibrance: "vibrance",
+  colorbalance: "colorBalance",
+  blackandwhite: "blackAndWhite",
+  blackwhite: "blackAndWhite",
+  channelmixer: "channelMixer",
+  exposure: "exposure",
+  photofilter: "photoFilter",
+  gradientmap: "gradientMap",
+  invert: "invert",
+  posterize: "posterize",
+  threshold: "threshold",
+  selectivecolor: "selectiveColor"
+};
+
+function normalizeAdjustmentKind(raw: unknown): string {
+  const token = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "");
+  if (!token) {
+    return "levels";
+  }
+  return ADJUSTMENT_KIND_ALIASES[token] ?? String(raw);
+}
+
+function adjustmentConfigFromOperation(op: Record<string, unknown>): { kind: string; params: Record<string, unknown> } {
+  const adjustmentValue = op.adjustment;
+  const settings =
+    adjustmentValue && typeof adjustmentValue === "object" && !Array.isArray(adjustmentValue) ? cloneDeep(adjustmentValue) : {};
+  const explicitSettings =
+    op.settings && typeof op.settings === "object" && !Array.isArray(op.settings) ? cloneDeep(op.settings as Record<string, unknown>) : {};
+
+  const kind = normalizeAdjustmentKind(
+    op.kind ?? op.type ?? (typeof adjustmentValue === "string" ? adjustmentValue : (settings as any).kind ?? (settings as any).type ?? "levels")
+  );
+
+  delete (settings as Record<string, unknown>).kind;
+  delete (settings as Record<string, unknown>).type;
+
+  const params: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(op)) {
+    if (
+      key === "op" ||
+      key === "target" ||
+      key === "onError" ||
+      key === "ref" ||
+      key === "refId" ||
+      key === "as" ||
+      key === "outputRef" ||
+      key === "storeAs" ||
+      key === "idRef" ||
+      key === "kind" ||
+      key === "type" ||
+      key === "adjustment" ||
+      key === "settings" ||
+      key === "name"
+    ) {
+      continue;
+    }
+    params[key] = value;
+  }
+
+  return {
+    kind,
+    params: {
+      ...params,
+      ...(settings as Record<string, unknown>),
+      ...explicitSettings
+    }
+  };
 }
 
 function executeOperation(op: PhotoshopOperation, context: OperationContext): ExecutionOutcome {
@@ -570,6 +872,59 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       state.docs[nextRef] = duplicated;
       state.activeDocRef = nextRef;
       return { refValue: nextRef, message: `duplicated document ${doc.ref}` };
+    }
+    case "changeDocumentMode": {
+      doc.mode = String((op as any).mode ?? (op as any).to ?? (op as any).newMode ?? doc.mode ?? "rgb");
+      return { refValue: doc.ref, message: `changeDocumentMode ${doc.mode}` };
+    }
+    case "convertColorProfile": {
+      doc.profile = String((op as any).profile ?? (op as any).name ?? (op as any).colorProfile ?? doc.profile ?? "");
+      return { refValue: doc.ref, message: `convertColorProfile ${doc.profile}` };
+    }
+    case "calculations": {
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        calculations: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "onError", "ref"].includes(k)))
+      };
+      return { refValue: doc.ref, message: "calculations" };
+    }
+    case "applyImage": {
+      const target = (op as any).targetLayer ? resolveLayer(doc, (op as any).targetLayer, refs) : doc.selection[0] ? doc.layers[doc.selection[0]] : undefined;
+      if (target) {
+        if (!target.filters) {
+          target.filters = [];
+        }
+        target.filters.push({
+          name: "applyImage",
+          params: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "targetLayer", "onError", "ref"].includes(k))),
+          appliedAt: nextTimestamp()
+        });
+        return { refValue: target.id, message: `applyImage ${target.id}` };
+      }
+      return { refValue: doc.ref, message: "applyImage" };
+    }
+    case "splitChannels": {
+      const base = doc.ref;
+      const channels = Object.values(doc.channels).filter((channel) => channel.kind === "component");
+      const createdRefs: string[] = [];
+      for (const channel of channels.length > 0 ? channels : [{ name: "channel" } as Channel]) {
+        const nextRef = nextDocumentRef(`${base}-${channel.name.toLowerCase()}`);
+        const duplicated = cloneDeep(doc);
+        duplicated.ref = nextRef;
+        duplicated.mode = "grayscale";
+        state.docs[nextRef] = duplicated;
+        createdRefs.push(nextRef);
+      }
+      state.activeDocRef = createdRefs[0] ?? state.activeDocRef;
+      return { refValue: createdRefs[0] ?? doc.ref, message: `splitChannels count=${createdRefs.length}` };
+    }
+    case "sampleColor": {
+      const x = Number((op as any).x ?? (op as any).position?.x ?? 0);
+      const y = Number((op as any).y ?? (op as any).position?.y ?? 0);
+      const r = Math.max(0, Math.min(255, Math.round(x) % 256));
+      const g = Math.max(0, Math.min(255, Math.round(y) % 256));
+      const b = (r + g) % 256;
+      return { refValue: doc.ref, message: `sampleColor rgb(${r},${g},${b})` };
     }
     case "createLayer": {
       const type = op.kind ?? "pixel";
@@ -743,7 +1098,7 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       return { refValue: layer.id, message: `created shape ${layer.id}` };
     }
     case "selectLayers": {
-      const resolvedIds = uniqueIds(op.targets.map((target) => resolveLayer(doc, target, refs).id));
+      const resolvedIds = uniqueIds(op.targets.map((target: LayerReference) => resolveLayer(doc, target, refs).id));
       const mode = op.mode ?? "set";
       if (mode === "set") {
         doc.selection = resolvedIds;
@@ -878,7 +1233,7 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       return { refValue: layer.id, message: `rasterized ${layer.id}` };
     }
     case "mergeLayers": {
-      const resolvedIds = uniqueIds(op.targets.map((target) => resolveLayer(doc, target, refs).id));
+      const resolvedIds = uniqueIds(op.targets.map((target: LayerReference) => resolveLayer(doc, target, refs).id));
       if (resolvedIds.length < 2) {
         throw new Error("mergeLayers requires at least two targets");
       }
@@ -920,6 +1275,46 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       doc.rootLayerIds = [flattenedLayer.id];
       doc.selection = [flattenedLayer.id];
       return { refValue: flattenedLayer.id, message: "flattened document" };
+    }
+    case "createLayerComp": {
+      const id = nextLayerCompId();
+      const layerComp: LayerCompState = {
+        id,
+        name: typeof (op as any).name === "string" && (op as any).name.trim() ? (op as any).name.trim() : `Layer Comp ${state.counters.layerComp}`,
+        comment: typeof (op as any).comment === "string" ? (op as any).comment : undefined,
+        capturedAt: nextTimestamp()
+      };
+      doc.layerComps[layerComp.id] = layerComp;
+      return { refValue: layerComp.id, message: `createLayerComp ${layerComp.name}` };
+    }
+    case "applyLayerComp": {
+      const layerComp = resolveLayerComp(
+        doc,
+        (op as any).layerComp ?? (op as any).target ?? (op as any).name ?? (op as any).layerCompName,
+        refs
+      );
+      return { refValue: layerComp.id, message: `applyLayerComp ${layerComp.name}` };
+    }
+    case "recaptureLayerComp": {
+      const layerComp = resolveLayerComp(
+        doc,
+        (op as any).layerComp ?? (op as any).target ?? (op as any).name ?? (op as any).layerCompName,
+        refs
+      );
+      layerComp.capturedAt = nextTimestamp();
+      if (typeof (op as any).comment === "string") {
+        layerComp.comment = (op as any).comment;
+      }
+      return { refValue: layerComp.id, message: `recaptureLayerComp ${layerComp.name}` };
+    }
+    case "deleteLayerComp": {
+      const layerComp = resolveLayerComp(
+        doc,
+        (op as any).layerComp ?? (op as any).target ?? (op as any).name ?? (op as any).layerCompName,
+        refs
+      );
+      delete doc.layerComps[layerComp.id];
+      return { refValue: layerComp.id, message: `deleteLayerComp ${layerComp.name}` };
     }
     case "transformLayer": {
       const layer = resolveLayer(doc, op.target, refs);
@@ -981,31 +1376,66 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       return { refValue: layer.id, message: `placed asset ${layer.id}` };
     }
     case "createAdjustmentLayer": {
+      const adjustmentConfig = adjustmentConfigFromOperation(op as Record<string, unknown>);
       const layer: Layer = {
         ...defaultLayerBase(nextLayerId(), `Adjustment ${state.counters.layer + 1}`, "adjustment"),
         adjustment: {
-          kind: (op.adjustment as string) || "generic",
-          params: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "adjustment", "onError", "ref"].includes(k)))
+          kind: adjustmentConfig.kind,
+          params: adjustmentConfig.params
         }
       };
+      if (typeof (op as any).name === "string" && (op as any).name.trim()) {
+        layer.name = (op as any).name.trim();
+      }
       doc.layers[layer.id] = layer;
       insertIntoParent(doc, layer.id, undefined);
       return { refValue: layer.id, message: `adjustment ${layer.id}` };
     }
-    case "applyFilter": {
+    case "setAdjustmentLayer": {
+      const layer = resolveLayer(doc, (op as any).target, refs);
+      if (layer.type !== "adjustment") {
+        throw new Error(`setAdjustmentLayer target is not an adjustment layer: ${layer.id}`);
+      }
+      const adjustmentConfig = adjustmentConfigFromOperation(op as Record<string, unknown>);
+      layer.adjustment = {
+        kind: adjustmentConfig.kind,
+        params: adjustmentConfig.params
+      };
+      return { refValue: layer.id, message: `setAdjustmentLayer ${layer.id}` };
+    }
+    case "applyFilter":
+    case "applyMotionBlur":
+    case "applySmartBlur":
+    case "applyHighPass":
+    case "applyMedianNoise":
+    case "applyMinimum":
+    case "applyMaximum":
+    case "applyDustAndScratches": {
       const target = (op as any).target ? resolveLayer(doc, (op as any).target, refs) : doc.selection[0] ? doc.layers[doc.selection[0]] : null;
       if (!target) {
         throw new Error("applyFilter requires target layer or non-empty selection");
       }
+      const canonicalFilterName =
+        op.op === "applyFilter"
+          ? String((op as any).filter ?? "unknown")
+          : ({
+              applyMotionBlur: "motionBlur",
+              applySmartBlur: "smartBlur",
+              applyHighPass: "highPass",
+              applyMedianNoise: "medianNoise",
+              applyMinimum: "minimum",
+              applyMaximum: "maximum",
+              applyDustAndScratches: "dustAndScratches"
+            } as Record<string, string>)[op.op] ?? op.op;
       if (!target.filters) {
         target.filters = [];
       }
       target.filters.push({
-        name: op.filter,
+        name: canonicalFilterName,
         params: Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "target", "filter", "onError", "ref"].includes(k))),
         appliedAt: nextTimestamp()
       });
-      return { refValue: target.id, message: `applyFilter ${op.filter} on ${target.id}` };
+      return { refValue: target.id, message: `applyFilter ${canonicalFilterName} on ${target.id}` };
     }
     case "addLayerMask": {
       const layer = resolveLayer(doc, op.target, refs);
@@ -1021,6 +1451,129 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
       const layer = resolveLayer(doc, op.target, refs);
       layer.mask = { enabled: false, applied: true };
       return { refValue: layer.id, message: `applyLayerMask ${layer.id}` };
+    }
+    case "createChannel": {
+      const channelId = nextChannelId();
+      const channel: Channel = {
+        id: channelId,
+        name: typeof (op as any).name === "string" && (op as any).name.trim() ? (op as any).name.trim() : `Alpha ${state.counters.channel}`,
+        kind: "alpha"
+      };
+      doc.channels[channel.id] = channel;
+      return { refValue: channel.id, message: `createChannel ${channel.name}` };
+    }
+    case "duplicateChannel": {
+      const source = resolveChannel(doc, (op as any).channel ?? (op as any).target, refs);
+      const channelId = nextChannelId();
+      const duplicated: Channel = {
+        id: channelId,
+        name: typeof (op as any).name === "string" && (op as any).name.trim() ? (op as any).name.trim() : `${source.name} copy`,
+        kind: source.kind
+      };
+      doc.channels[duplicated.id] = duplicated;
+      return { refValue: duplicated.id, message: `duplicateChannel ${source.name}` };
+    }
+    case "deleteChannel": {
+      const target = resolveChannel(doc, (op as any).channel ?? (op as any).target, refs);
+      delete doc.channels[target.id];
+      if (doc.selectionChannelId === target.id) {
+        doc.selectionChannelId = undefined;
+      }
+      return { refValue: target.id, message: `deleteChannel ${target.name}` };
+    }
+    case "saveSelection":
+    case "saveSelectionTo": {
+      const rawTarget = (op as any).channel ?? (op as any).target ?? (op as any).channelName ?? (op as any).name;
+      let channel: Channel;
+      if (rawTarget) {
+        channel = resolveChannel(doc, rawTarget, refs);
+      } else {
+        const channelId = nextChannelId();
+        channel = {
+          id: channelId,
+          name: `Alpha ${state.counters.channel}`,
+          kind: "alpha"
+        };
+        doc.channels[channel.id] = channel;
+      }
+      doc.selectionChannelId = channel.id;
+      return { refValue: channel.id, message: `${op.op} ${channel.name}` };
+    }
+    case "loadSelection": {
+      const channel = resolveChannel(doc, (op as any).channel ?? (op as any).target ?? (op as any).channelName ?? (op as any).name, refs);
+      doc.selectionChannelId = channel.id;
+      return { refValue: channel.id, message: `loadSelection ${channel.name}` };
+    }
+    case "createPath":
+    case "makeWorkPathFromSelection": {
+      const pathId = nextPathId();
+      const pathItem: PathItemState = {
+        id: pathId,
+        name: typeof (op as any).name === "string" && (op as any).name.trim() ? (op as any).name.trim() : "Work Path",
+        madeFromSelectionAt: nextTimestamp()
+      };
+      doc.paths[pathItem.id] = pathItem;
+      doc.selectionPathId = pathItem.id;
+      return { refValue: pathItem.id, message: `${op.op} ${pathItem.name}` };
+    }
+    case "deletePath": {
+      const pathItem = resolvePath(doc, (op as any).path ?? (op as any).target ?? (op as any).pathName, refs);
+      delete doc.paths[pathItem.id];
+      if (doc.selectionPathId === pathItem.id) {
+        doc.selectionPathId = undefined;
+      }
+      return { refValue: pathItem.id, message: `deletePath ${pathItem.name}` };
+    }
+    case "makeSelectionFromPath": {
+      const pathItem = resolvePath(doc, (op as any).path ?? (op as any).target ?? (op as any).pathName, refs);
+      doc.selectionPathId = pathItem.id;
+      doc.selectionInfo = {
+        ...(doc.selectionInfo ?? {}),
+        sourcePath: pathItem.name
+      };
+      return { refValue: pathItem.id, message: `makeSelectionFromPath ${pathItem.name}` };
+    }
+    case "fillPath": {
+      const pathItem = resolvePath(doc, (op as any).path ?? (op as any).target ?? (op as any).pathName, refs);
+      pathItem.fill = Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "path", "target", "pathName", "onError", "ref"].includes(k)));
+      return { refValue: pathItem.id, message: `fillPath ${pathItem.name}` };
+    }
+    case "strokePath": {
+      const pathItem = resolvePath(doc, (op as any).path ?? (op as any).target ?? (op as any).pathName, refs);
+      pathItem.stroke = Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "path", "target", "pathName", "onError", "ref"].includes(k)));
+      return { refValue: pathItem.id, message: `strokePath ${pathItem.name}` };
+    }
+    case "makeClippingPath": {
+      const pathItem = resolvePath(doc, (op as any).path ?? (op as any).target ?? (op as any).pathName, refs);
+      pathItem.clipping = {
+        enabled: true,
+        flatness: typeof (op as any).flatness === "number" ? (op as any).flatness : undefined
+      };
+      return { refValue: pathItem.id, message: `makeClippingPath ${pathItem.name}` };
+    }
+    case "addGuide": {
+      const guide: GuideState = {
+        id: nextGuideId(),
+        direction: String((op as any).direction ?? (op as any).orientation ?? "horizontal"),
+        position: Number((op as any).position ?? (op as any).coordinate ?? (op as any).value ?? 0)
+      };
+      doc.guides.push(guide);
+      return { refValue: guide.id, message: `addGuide ${guide.direction}@${guide.position}` };
+    }
+    case "removeGuide": {
+      if (doc.guides.length === 0) {
+        throw new Error("No guides available");
+      }
+      const index = Number.isFinite(Number((op as any).index))
+        ? Math.max(0, Math.min(doc.guides.length - 1, Number((op as any).index)))
+        : doc.guides.length - 1;
+      const [removed] = doc.guides.splice(index, 1);
+      return { refValue: removed.id, message: `removeGuide ${removed.direction}@${removed.position}` };
+    }
+    case "clearGuides": {
+      const count = doc.guides.length;
+      doc.guides = [];
+      return { refValue: doc.ref, message: `clearGuides count=${count}` };
     }
     case "setSelection": {
       doc.selectionInfo = Object.fromEntries(Object.entries(op).filter(([k]) => !["op", "onError", "ref"].includes(k)));
@@ -1041,6 +1594,36 @@ function executeOperation(op: PhotoshopOperation, context: OperationContext): Ex
     case "invertSelection": {
       doc.selectionInverted = !doc.selectionInverted;
       return { refValue: doc.ref, message: `invertSelection=${String(doc.selectionInverted)}` };
+    }
+    case "playAction": {
+      const actionName = String((op as any).action ?? (op as any).name ?? "");
+      const actionSet = String((op as any).actionSet ?? (op as any).set ?? (op as any).setName ?? "");
+      if (!actionName || !actionSet) {
+        throw new Error("playAction requires action and actionSet");
+      }
+      return { refValue: doc.ref, message: `playAction ${actionSet}/${actionName}` };
+    }
+    case "playActionSet": {
+      const actionSet = String((op as any).actionSet ?? (op as any).set ?? (op as any).name ?? "");
+      if (!actionSet) {
+        throw new Error("playActionSet requires actionSet/set/name");
+      }
+      return { refValue: doc.ref, message: `playActionSet ${actionSet}` };
+    }
+    case "getPixels":
+    case "getSelectionPixels":
+    case "getLayerMaskPixels": {
+      return { refValue: doc.ref, message: `${op.op} ok` };
+    }
+    case "putPixels":
+    case "putSelectionPixels":
+    case "putLayerMaskPixels":
+    case "encodeImageData": {
+      const payload = (op as any).imageData ?? (op as any).pixels;
+      if (!payload || typeof payload !== "object") {
+        throw new Error(`${op.op} requires imageData/pixels`);
+      }
+      return { refValue: doc.ref, message: `${op.op} ok` };
     }
     case "batchPlay": {
       const record: BatchPlayRecord = {
